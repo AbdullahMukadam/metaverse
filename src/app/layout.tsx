@@ -1,7 +1,10 @@
+
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Michroma, Michroma } from "next/font/google";
+import { Geist, Geist_Mono, Michroma } from "next/font/google";
 import "./globals.css";
 import CommonLayout from "@/common-layout/commonLayout";
+import { Toaster } from "@/components/ui/sonner";
+import StoreProvider from "./StoreProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,8 +36,14 @@ export default function RootLayout({
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${sansMichroma.variable} antialiased max-w-[80rem] mx-auto bg-zinc-900`}
+        suppressHydrationWarning
       >
-        <CommonLayout>{children}</CommonLayout>
+        <StoreProvider>
+          <CommonLayout>{children}</CommonLayout>
+          <Toaster />
+        </StoreProvider>
+
+
       </body>
     </html>
   );
