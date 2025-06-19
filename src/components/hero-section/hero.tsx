@@ -123,7 +123,7 @@ function Hero() {
                     </button>
                 </div>
                 <div className='w-full flex items-center justify-center'>
-                    <Image src={"/portraitshingshing-1.webp"} width={250} height={250} alt='character' />
+                    <Image src={"/portraitshingshing-1.webp"} width={250} height={250} alt='character' unoptimized/>
                 </div>
             </div>
         </div>

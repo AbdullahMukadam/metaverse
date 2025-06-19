@@ -1,5 +1,4 @@
 import SignupComponent from '@/components/Auth/Signup'
-import Image from 'next/image'
 import React from 'react'
 
 function SignUp() {
