@@ -1,10 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from "./auth/authSlice"
+import mapReducer from "./map/mapSlice"
 
 export const makeStore = () => {
     return configureStore({
         reducer: {
-            auth: authReducer
+            auth: authReducer,
+            map: mapReducer
         },
     })
 }
