@@ -3,15 +3,19 @@
 export class GameMap {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
-    private image: HTMLImageElement;
+    public image: HTMLImageElement;
     private isLoaded: boolean = false;
-    public offsetX: number = 360;
-    public offsetY: number = 410;
+    public offsetX: number = 0;
+    public offsetY: number = 0;
+    public screenWidth: number = 0
+    public screenHeight: number = 0
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(canvas: HTMLCanvasElement, viewPort: { width: number, height: number }) {
         this.canvas = canvas;
         this.ctx = this.canvas.getContext("2d")!;
         this.image = new Image();
+        this.screenWidth = viewPort.width
+        this.screenHeight = viewPort.height
     }
 
     async load(ImagePath: string) {
@@ -31,21 +35,17 @@ export class GameMap {
     draw() {
         if (!this.isLoaded) return;
 
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+
         this.ctx.drawImage(
             this.image,
-            -this.offsetX,
-            -this.offsetY,
+            this.offsetX,
+            this.offsetY,
+            this.screenWidth,
+            this.screenHeight
         )
     }
 
-    centerOn(x: number, y: number) {
-        // Calculate new offsets to center the view on (x,y)
-        this.offsetX = x - this.canvas.width / 2;
-        this.offsetY = y - this.canvas.height / 2;
 
-        // Boundary checks to prevent showing outside the map
-        this.offsetX = Math.max(0, Math.min(this.offsetX, this.image.width - this.canvas.width));
-        this.offsetY = Math.max(0, Math.min(this.offsetY, this.image.height - this.canvas.height));
-    }
 }

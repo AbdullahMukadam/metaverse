@@ -1,7 +1,9 @@
+
 import Image from 'next/image'
 import React from 'react'
 
 function Hero() {
+    
     return (
         <div className='w-full min-h-screen relative font-michroma overflow-hidden'>
 
@@ -123,7 +125,7 @@ function Hero() {
                     </button>
                 </div>
                 <div className='w-full flex items-center justify-center'>
-                    <Image src={"/portraitshingshing-1.webp"} width={250} height={250} alt='character' unoptimized/>
+                    <Image src={"/portraitshingshing-1.webp"} width={250} height={250} alt='character' unoptimized />
                 </div>
             </div>
         </div>

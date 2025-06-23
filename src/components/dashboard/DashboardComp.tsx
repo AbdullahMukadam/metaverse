@@ -20,7 +20,7 @@ interface DashboardCompProps {
 
 function DashboardComp({ userData }: DashboardCompProps) {
     const dispatch = useAppDispatch()
-    const [isDialogOpen, setisDialogOpen] = useState(false)
+    const [isDialogOpen, setIsDialogOpen] = useState(false)
 
     useEffect(() => {
         if (userData) {
@@ -42,13 +42,15 @@ function DashboardComp({ userData }: DashboardCompProps) {
                 <div className='w-full h-fit p-2'>
                     <li>You may need to wait for some time, till we ready the metaverse. </li>
                     <li>Please keep pateinace.</li>
+                    <li>Currently Only Supports Desktop,Laptops,etc.</li>
+                    <li>Mobile Support will be Adding soon.</li>
                 </div>
                 <div className='w-full h-[50%] mt-2 flex items-center justify-center flex-col gap-3'>
                     <h1 className='font-bold text-xl'>Join The World</h1>
-                    <button className='p-2 border-2 transition-all duration-200 ease-in-out border-black w-[120px] hover:bg-black hover:text-white' onClick={() => setisDialogOpen(true)}>Join</button>
+                    <button className='p-2 border-2 transition-all duration-200 ease-in-out border-black w-[120px] hover:bg-black hover:text-white cursor-pointer' onClick={() => setIsDialogOpen(true)}>Join</button>
                 </div>
             </div>
-            <CharacterDialog isDialogOpen={isDialogOpen} setisDialogOpen={setisDialogOpen} />
+            <CharacterDialog isDialogOpen={isDialogOpen} setIsDialogOpen={setIsDialogOpen} />
         </div>
     )
 }

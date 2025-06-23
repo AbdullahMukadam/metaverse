@@ -1,44 +1,164 @@
-// app/game/classes/Character.ts
-export class Character {
-    private image: HTMLImageElement;
-    private isLoaded: boolean = false;
 
-    constructor(
-        public x: number = -360,
-        public y: number = -410,
-        public width: number = 900,
-        public height: number = 160,
-        private spritePath: string = '/characters/female/walk_Down.png'
-    ) {
-        this.image = new Image();
+
+export class Character {
+    public worldX: number;
+    public worldY: number;
+    public width: number;
+    public height: number;
+    public selectedCharacter: string;
+    public speed: number = 1;
+    public isLoaded: boolean = false;
+
+    // Animation properties
+    private currentFrame: number = 0;
+    private frameCount: number = 0;
+    private animationSpeed: number = 50;
+    private totalFrames: number = 4;
+    private direction: 'up' | 'down' | 'left' | 'right' = 'down';
+    private isMoving: boolean = false;
+
+    // Sprites
+    private sprites: Record<'up' | 'down' | 'left' | 'right', HTMLImageElement>;
+    private currentSprite: HTMLImageElement;
+
+    constructor(xPosition: number, yPosition: number, selectedCharacter: string) {
+        this.worldX = xPosition;
+        this.worldY = yPosition;
+        this.selectedCharacter = selectedCharacter;
+
+        this.sprites = {
+            up: new Image(),
+            down: new Image(),
+            left: new Image(),
+            right: new Image()
+        };
+        this.currentSprite = this.sprites.down
+
+
+        if (selectedCharacter === "Male") {
+            this.width = 23;
+            this.height = 27;
+            this.totalFrames = 4
+            this.animationSpeed = 50
+        } else {
+            this.width = 27;
+            this.height = 32;
+            this.totalFrames = 8;
+            this.animationSpeed = 8
+        }
+
     }
 
-    async load() {
+
+
+    async load(): Promise<void> {
+        const isMale = this.selectedCharacter === "Male";
+        const basePath = `/characters/${isMale ? 'male' : 'female'}`;
+
         return new Promise<void>((resolve, reject) => {
-            this.image.onload = () => {
-                this.isLoaded = true;
-                resolve();
+            let loadedCount = 0;
+            const totalSprites = 4;
+
+            const checkLoaded = () => {
+                loadedCount++;
+                if (loadedCount === totalSprites) {
+                    this.isLoaded = true;
+                    resolve();
+                }
             };
-            this.image.onerror = () => {
-                reject(new Error('Failed to load character image'));
-            };
-            this.image.src = this.spritePath;
+
+            if (isMale) {
+                this.sprites.up.src = `${basePath}/playerUp.png`;
+                this.sprites.down.src = `${basePath}/playerDown.png`;
+                this.sprites.left.src = `${basePath}/playerLeft.png`;
+                this.sprites.right.src = `${basePath}/playerRight.png`;
+            } else {
+                this.sprites.up.src = `${basePath}/femalePlayerUp1.png`;
+                this.sprites.down.src = `${basePath}/femalePlayerDown1.png`;
+                this.sprites.left.src = `${basePath}/femalePlayerLeft1.png`;
+                this.sprites.right.src = `${basePath}/femalePlayerRight1.png`;
+            }
+
+            this.sprites.up.onload = checkLoaded;
+            this.sprites.up.onerror = reject;
+
+            this.sprites.down.onload = checkLoaded;
+            this.sprites.down.onerror = reject;
+
+            this.sprites.left.onload = checkLoaded;
+            this.sprites.left.onerror = reject;
+
+            this.sprites.right.onload = checkLoaded;
+            this.sprites.right.onerror = reject;
         });
     }
 
-    draw(ctx: CanvasRenderingContext2D, viewport: { width: number, height: number }) {
+    update(keys: { [key: string]: boolean }) {
         if (!this.isLoaded) return;
 
-        // Draw character centered on screen (viewport coordinates)
-        const screenX = viewport.width / 2 - this.width / 4;
-        const screenY = viewport.height / 2 - this.height;
+        this.isMoving = false;
 
-        ctx.drawImage(
-            this.image,
-            screenX,
-            screenY,
-            this.width,
-            this.height
-        );
+        if (keys.ArrowUp || keys.w) {
+            this.worldY -= this.speed;
+            this.direction = 'up';
+            this.isMoving = true;
+        }
+        if (keys.ArrowDown || keys.s) {
+            this.worldY += this.speed;
+            this.direction = 'down';
+            this.isMoving = true;
+        }
+        if (keys.ArrowLeft || keys.a) {
+            this.worldX -= this.speed;
+            this.direction = 'left';
+            this.isMoving = true;
+        }
+        if (keys.ArrowRight || keys.d) {
+            this.worldX += this.speed;
+            this.direction = 'right';
+            this.isMoving = true;
+        }
+
+        // animation
+        if (this.isMoving) {
+            this.frameCount++;
+            if (this.frameCount % this.animationSpeed === 0) {
+                this.currentFrame = (this.currentFrame + 1) % this.totalFrames;
+            }
+            this.currentSprite = this.sprites[this.direction];
+        } else {
+            this.currentFrame = 0;
+            this.frameCount = 0;
+        }
+    }
+
+    draw(ctx: CanvasRenderingContext2D) {
+        if (!this.isLoaded) {
+            console.warn('Character not loaded yet - drawing placeholder');
+            ctx.fillStyle = 'red';
+            ctx.fillRect(this.worldX, this.worldY, this.width, this.height);
+            return;
+        }
+
+        try {
+            const frameWidth = this.currentSprite.width / this.totalFrames;
+            const frameHeight = this.currentSprite.height;
+
+            ctx.drawImage(
+                this.currentSprite,
+                this.currentFrame * frameWidth,
+                0,
+                frameWidth,
+                frameHeight,
+                this.worldX,
+                this.worldY,
+                this.width,
+                this.height
+            );
+        } catch (error) {
+            console.error('Error drawing character:', error);
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(this.worldX, this.worldY, this.width, this.height);
+        }
     }
 }

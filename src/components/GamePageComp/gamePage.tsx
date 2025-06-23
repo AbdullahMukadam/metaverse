@@ -1,45 +1,77 @@
 "use client"
 import { Character } from '@/app/game/clases/Character';
+import { Collision } from '@/app/game/clases/Collision';
 import { GameMap } from '@/app/game/clases/GameMap';
-import { useAppDispatch } from '@/lib/hooks';
-import { mapLoadingState } from '@/lib/map/mapSlice';
-import React, { useEffect, useRef } from 'react'
+import { InputHandler } from '@/app/game/clases/InputHandler';
+import { useAppDispatch, useAppSelector } from '@/lib/hooks';
+import { mapDismantleState } from '@/lib/map/mapSlice';
+import { exportArray } from '@/utils/collisionsData';
+import { useRouter } from 'next/navigation';
+import React, { useEffect, useRef } from 'react';
 
 function GamePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameMapRef = useRef<GameMap>(null);
   const characterRef = useRef<Character>(null);
-  const dispatch = useAppDispatch()
+  const inputHandlerRef = useRef<InputHandler>(null);
+  const collisionRef = useRef<Collision>(null)
+  const selectedCharacter = useAppSelector((state) => state.map.character)
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const collisionArrayData = exportArray
 
   useEffect(() => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current
     const ctx = canvas.getContext('2d')!;
-    gameMapRef.current = new GameMap(canvas)
-    characterRef.current = new Character(-360, -410);
+
+    const viewPort = {
+      width: 1280,
+      height: 720
+    }
+
+    canvas.width = viewPort.width;
+    canvas.height = viewPort.height;
+
+    gameMapRef.current = new GameMap(canvas, viewPort)
+    collisionRef.current = new Collision(collisionArrayData)
+
+    const characterWidth = selectedCharacter === "Male" ? 70 : 110;
+    const characterHeight = selectedCharacter === "Male" ? 70 : 120;
+    characterRef.current = new Character(
+      canvas.width / 2 - characterWidth,
+      canvas.height / 2 - characterHeight / 2,
+      selectedCharacter
+    );
+
+    inputHandlerRef.current = new InputHandler()
 
     Promise.all([
-      gameMapRef.current.load("/map/metaverse map.png"),
-      characterRef.current.load()
+      gameMapRef.current.load("/map/metaverse map(not-zoom).png"),
+      characterRef.current.load().then(() => console.log("Character loaded successfully"))
+        .catch(err => {
+          console.error("Character loading failed:", err);
+          console.log("Current public directory structure should be:");
+        })
     ]).then(() => {
-      dispatch(mapLoadingState())
-
-     /* gameMapRef.current?.centerOn(
-        characterRef.current?.x || -360,
-        characterRef.current?.y || -410
-      ); */
 
       const gameLoop = () => {
-        if (!canvasRef.current) return;
+        if (!canvasRef.current || !characterRef.current || !inputHandlerRef.current || !gameMapRef.current || !collisionRef.current) return;
 
-        const viewport = {
-          width: canvas.width,
-          height: canvas.height
-        };
+        const prevX = characterRef.current.worldX
+        const prevY = characterRef.current.worldY
+
+        characterRef.current.update(inputHandlerRef.current.keys);
+
+        if (collisionRef.current.detectCollision(characterRef.current)) {
+          characterRef.current.worldX = prevX
+          characterRef.current.worldY = prevY
+        }
 
         gameMapRef.current?.draw();
-        characterRef.current?.draw(ctx, viewport);
+        collisionRef.current?.draw(ctx)
+        characterRef.current?.draw(ctx);
 
         requestAnimationFrame(gameLoop);
       };
@@ -47,23 +79,35 @@ function GamePage() {
       gameLoop();
     }).catch((error) => console.log("Canvas Error:", error))
 
-    const handleResize = () => {
-      if (!canvasRef.current) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight
-    };
+  }, [collisionArrayData, selectedCharacter])
 
-    window.addEventListener('resize', handleResize);
-    handleResize();
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, [])
+  const handleLeaveWorld = (): void => {
+    dispatch(mapDismantleState())
+    router.push("/dashboard")
+  }
 
   return (
-    <div className='relative w-full h-full'>
-      <canvas ref={canvasRef} className=''></canvas>
+    <div className='relative w-full h-screen bg-gray-900'>
+      <div className='w-full h-full flex items-center justify-center'>
+        <canvas
+          ref={canvasRef}
+          className='border border-black shadow-lg'
+          style={{
+            maxWidth: '100%',
+            maxHeight: '100%',
+            objectFit: 'contain'
+          }}
+        />
+      </div>
+
+      <div className='absolute right-3 bottom-[10%] p-3'>
+        <button
+          className='p-2 bg-red-500 font-semibold cursor-pointer rounded-2xl border border-black font-michroma text-white hover:bg-red-600 transition-colors'
+          onClick={handleLeaveWorld}
+        >
+          Leave World
+        </button>
+      </div>
     </div>
   )
 }

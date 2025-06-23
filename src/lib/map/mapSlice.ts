@@ -1,23 +1,26 @@
-import { createSlice } from '@reduxjs/toolkit'
-import type { PayloadAction } from '@reduxjs/toolkit'
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 export interface mapState {
-    isLoaded: boolean
+    isLoaded: boolean;
+    character: string;
 }
 
 const initialState: mapState = {
-    isLoaded: false
+    isLoaded: false,
+    character: "Male"
 }
 
 export const mapSlice = createSlice({
     name: 'map',
     initialState,
     reducers: {
-        mapLoadingState: (state) => {
+        mapLoadingState: (state, action: PayloadAction<string>) => {
             state.isLoaded = true
+            state.character = action.payload
         },
         mapDismantleState: (state) => {
             state.isLoaded = false
+            state.character = "Male"
         },
 
     },
