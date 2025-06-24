@@ -47,7 +47,7 @@ export class Collision {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.fillStyle = "red"
+        ctx.fillStyle = "rgba(255,0,0,0.0)"
         this.boundaryArray.forEach((arr) => {
             ctx.fillRect(arr.position.x, arr.position.y, arr.width, arr.height)
         })

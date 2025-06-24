@@ -1,21 +1,27 @@
 "use client"
 import { Character } from '@/app/game/clases/Character';
 import { Collision } from '@/app/game/clases/Collision';
+import { ForegroundObjects } from '@/app/game/clases/ForegroundObjects';
 import { GameMap } from '@/app/game/clases/GameMap';
 import { InputHandler } from '@/app/game/clases/InputHandler';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { mapDismantleState } from '@/lib/map/mapSlice';
 import { exportArray } from '@/utils/collisionsData';
+import { getSocket } from '@/utils/Socket';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useRef } from 'react';
+import { Socket } from 'socket.io-client';
 
 function GamePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameMapRef = useRef<GameMap>(null);
   const characterRef = useRef<Character>(null);
   const inputHandlerRef = useRef<InputHandler>(null);
-  const collisionRef = useRef<Collision>(null)
+  const collisionRef = useRef<Collision>(null);
+  const foregroundRef = useRef<ForegroundObjects>(null);
+  const socketRef = useRef<Socket>(null)
   const selectedCharacter = useAppSelector((state) => state.map.character)
+  const userData = useAppSelector((state) => state.auth.userData)
   const dispatch = useAppDispatch();
   const router = useRouter();
   const collisionArrayData = exportArray
@@ -36,6 +42,8 @@ function GamePage() {
 
     gameMapRef.current = new GameMap(canvas, viewPort)
     collisionRef.current = new Collision(collisionArrayData)
+    foregroundRef.current = new ForegroundObjects(viewPort)
+    socketRef.current = getSocket()
 
     const characterWidth = selectedCharacter === "Male" ? 70 : 110;
     const characterHeight = selectedCharacter === "Male" ? 70 : 120;
@@ -53,11 +61,12 @@ function GamePage() {
         .catch(err => {
           console.error("Character loading failed:", err);
           console.log("Current public directory structure should be:");
-        })
+        }),
+      foregroundRef.current.load("/map/foreground image.png")
     ]).then(() => {
 
       const gameLoop = () => {
-        if (!canvasRef.current || !characterRef.current || !inputHandlerRef.current || !gameMapRef.current || !collisionRef.current) return;
+        if (!canvasRef.current || !characterRef.current || !inputHandlerRef.current || !gameMapRef.current || !collisionRef.current || !foregroundRef.current) return;
 
         const prevX = characterRef.current.worldX
         const prevY = characterRef.current.worldY
@@ -72,6 +81,7 @@ function GamePage() {
         gameMapRef.current?.draw();
         collisionRef.current?.draw(ctx)
         characterRef.current?.draw(ctx);
+        foregroundRef.current?.draw(ctx)
 
         requestAnimationFrame(gameLoop);
       };
@@ -82,6 +92,11 @@ function GamePage() {
   }, [collisionArrayData, selectedCharacter])
 
   const handleLeaveWorld = (): void => {
+    if (!socketRef.current) return
+
+    socketRef.current.emit("disconnection", {
+      userId: userData?.id
+    })
     dispatch(mapDismantleState())
     router.push("/dashboard")
   }
