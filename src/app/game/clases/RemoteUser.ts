@@ -1,41 +1,40 @@
+import { UserMovementData } from "@/utils/Socket";
 
-
-
-interface UserData {
-    id: string;
-    name: string;
-    emailVerified: boolean;
-    email: string;
-    image: string;
-}
-
-export class Character {
+export class RemoteUser {
     public worldX: number;
     public worldY: number;
     public width: number;
     public height: number;
     public selectedCharacter: string;
-    public speed: number = 1;
+    public userId: string;
     public isLoaded: boolean = false;
-    public UserInfo: UserData;
+    public userName: string;
 
 
     private currentFrame: number = 0;
     private frameCount: number = 0;
-    private animationSpeed: number = 50;
-    private totalFrames: number = 4;
+    private animationSpeed: number;
+    private totalFrames: number;
     public direction: 'up' | 'down' | 'left' | 'right' = 'down';
     public isMoving: boolean = false;
+    public lastUpdate: number = 0;
 
 
     private sprites: Record<'up' | 'down' | 'left' | 'right', HTMLImageElement>;
     private currentSprite: HTMLImageElement;
 
-    constructor(xPosition: number, yPosition: number, selectedCharacter: string, userData: UserData) {
+    constructor(
+        xPosition: number,
+        yPosition: number,
+        selectedCharacter: string,
+        userId: string,
+        userName: string
+    ) {
         this.worldX = xPosition;
         this.worldY = yPosition;
         this.selectedCharacter = selectedCharacter;
-        this.UserInfo = userData
+        this.userId = userId;
+        this.userName = userName
 
         this.sprites = {
             up: new Image(),
@@ -43,24 +42,20 @@ export class Character {
             left: new Image(),
             right: new Image()
         };
-        this.currentSprite = this.sprites.down
-
+        this.currentSprite = this.sprites.down;
 
         if (selectedCharacter === "Male") {
             this.width = 23;
             this.height = 27;
-            this.totalFrames = 4
-            this.animationSpeed = 20
+            this.totalFrames = 4;
+            this.animationSpeed = 20;
         } else {
             this.width = 27;
             this.height = 32;
             this.totalFrames = 8;
-            this.animationSpeed = 8
+            this.animationSpeed = 8;
         }
-
     }
-
-
 
     async load(): Promise<void> {
         const isMale = this.selectedCharacter === "Male";
@@ -104,80 +99,72 @@ export class Character {
         });
     }
 
-    update(keys: { [key: string]: boolean }) {
-        if (!this.isLoaded) return;
+    updateFromNetwork(data: UserMovementData) {
+        this.worldX = data.positions.X;
+        this.worldY = data.positions.Y;
+        this.direction = data.direction;
+        this.isMoving = data.isMoving;
+        this.lastUpdate = Date.now();
 
-        this.isMoving = false;
-
-        if (keys.ArrowUp || keys.w) {
-            this.worldY -= this.speed;
-            this.direction = 'up';
-            this.isMoving = true;
-        }
-        if (keys.ArrowDown || keys.s) {
-            this.worldY += this.speed;
-            this.direction = 'down';
-            this.isMoving = true;
-        }
-        if (keys.ArrowLeft || keys.a) {
-            this.worldX -= this.speed;
-            this.direction = 'left';
-            this.isMoving = true;
-        }
-        if (keys.ArrowRight || keys.d) {
-            this.worldX += this.speed;
-            this.direction = 'right';
-            this.isMoving = true;
-        }
-
+        this.currentSprite = this.sprites[this.direction];
 
         if (this.isMoving) {
-            this.frameCount++;
-            if (this.frameCount % this.animationSpeed === 0) {
-                this.currentFrame = (this.currentFrame + 1) % this.totalFrames;
-            }
-            this.currentSprite = this.sprites[this.direction];
+            this.updateAnimation();
         } else {
             this.currentFrame = 0;
             this.frameCount = 0;
         }
     }
 
+    update() {
+        if (this.isMoving) {
+            this.updateAnimation();
+        } else {
+            this.currentFrame = 0;
+            this.frameCount = 0;
+        }
+    }
+
+    private updateAnimation() {
+        this.frameCount++;
+        if (this.frameCount % this.animationSpeed === 0) {
+            this.currentFrame = (this.currentFrame + 1) % this.totalFrames;
+        }
+    }
+
+    updatePosition(x: number, y: number): void {
+        this.worldX = x;
+        this.worldY = y;
+    }
+
     draw(ctx: CanvasRenderingContext2D) {
         if (!this.isLoaded) {
-            console.warn('Character not loaded yet - drawing placeholder');
-            ctx.fillStyle = 'red';
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
             ctx.fillRect(this.worldX, this.worldY, this.width, this.height);
             return;
         }
 
-        try {
-            const frameWidth = this.currentSprite.width / this.totalFrames;
-            const frameHeight = this.currentSprite.height;
-            const displayName = this.UserInfo.name.split(" ")[0] || this.UserInfo.name
+        const frameWidth = this.currentSprite.width / this.totalFrames;
+        const frameHeight = this.currentSprite.height;
+        const displayName = this.userName.split(" ")[0] || this.userName
 
-            ctx.fillStyle = 'black';
-            ctx.font = 'bold 12px Arial';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 2;
-            ctx.textAlign = 'center';
-            ctx.fillText(displayName, this.worldX + this.width / 2, this.worldY - 5);
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 12px Arial';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.textAlign = 'center';
+        ctx.fillText(displayName, this.worldX + this.width / 2, this.worldY - 5);
 
-            ctx.drawImage(
-                this.currentSprite,
-                this.currentFrame * frameWidth,
-                0,
-                frameWidth,
-                frameHeight,
-                this.worldX,
-                this.worldY,
-                this.width,
-                this.height
-            );
-        } catch (error) {
-            console.error('Error drawing character:', error);
-            ctx.fillStyle = 'blue';
-            ctx.fillRect(this.worldX, this.worldY, this.width, this.height);
-        }
+        ctx.drawImage(
+            this.currentSprite,
+            this.currentFrame * frameWidth,
+            0,
+            frameWidth,
+            frameHeight,
+            this.worldX,
+            this.worldY,
+            this.width,
+            this.height
+        );
     }
 }

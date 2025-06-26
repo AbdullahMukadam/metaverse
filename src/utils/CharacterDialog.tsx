@@ -17,13 +17,13 @@ import {
     ChoiceboxItemIndicator,
     ChoiceboxItemTitle,
 } from '@/components/ui/kibo-ui/choicebox';
-import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { useAppDispatch } from "@/lib/hooks";
 import { mapLoadingState } from "@/lib/map/mapSlice";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
-import { handleSpaceCreation } from "./Socket";
+
 
 interface DialogParams {
     isDialogOpen: boolean;
@@ -40,7 +40,6 @@ export function CharacterDialog({ isDialogOpen, setIsDialogOpen }: DialogParams)
     const [selectedCharacter, setSelectedCharacter] = useState("Male");
     const dispatch = useAppDispatch();
     const router = useRouter();
-    const userData = useAppSelector((state) => state.auth.userData)
     const options: SelectOptions[] = [
         {
             id: '1',
@@ -63,15 +62,14 @@ export function CharacterDialog({ isDialogOpen, setIsDialogOpen }: DialogParams)
             setIsDialogOpen(false);
             return
         }
-        const response = await handleSpaceCreation(userData?.id, userData?.name)
-        console.log(response)
-        if (response === "success") {
-            dispatch(mapLoadingState(selectedCharacter))
-            console.log("Selected character:", selectedCharacter);
-            router.push("/game")
-            setIsDialogOpen(false);
-            console.log("socketId:" + response)
-        }
+
+
+        dispatch(mapLoadingState(selectedCharacter))
+        console.log("Selected character:", selectedCharacter);
+        router.push("/game")
+        setIsDialogOpen(false);
+
+
 
     }
 
