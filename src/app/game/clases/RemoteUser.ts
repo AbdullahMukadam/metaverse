@@ -9,6 +9,7 @@ export class RemoteUser {
     public userId: string;
     public isLoaded: boolean = false;
     public userName: string;
+    public isActive : boolean = true
 
 
     private currentFrame: number = 0;

@@ -2,6 +2,7 @@
 import { login } from '@/lib/auth/authSlice';
 import { useAppDispatch } from '@/lib/hooks'
 import { CharacterDialog } from '@/utils/CharacterDialog';
+
 import React, { useEffect, useState } from 'react'
 
 interface UserData {
@@ -34,6 +35,8 @@ function DashboardComp({ userData }: DashboardCompProps) {
             dispatch(login(filteredData))
         }
     }, [dispatch, userData])
+
+    
 
 
     return (

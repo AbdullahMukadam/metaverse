@@ -1,4 +1,3 @@
-
 export class ForegroundObjects {
     public image: HTMLImageElement
     public isLoaded: boolean = false
@@ -12,15 +11,16 @@ export class ForegroundObjects {
     }
 
     async load(path: string) {
+        this.image = new Image();
         return new Promise<void>((resolve, reject) => {
             this.image.onload = () => {
-                this.isLoaded = true
-                resolve()
+                this.isLoaded = true;
+                resolve();
             }
             this.image.onerror = () => {
                 reject(new Error('Failed to load foreground image'));
             }
-            this.image.src = path
+            this.image.src = path;
         })
     }
 

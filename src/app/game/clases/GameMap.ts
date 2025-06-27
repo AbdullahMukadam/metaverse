@@ -1,10 +1,8 @@
-
-
 export class GameMap {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     public image: HTMLImageElement;
-    private isLoaded: boolean = false;
+    public isLoaded: boolean = false;
     public offsetX: number = 0;
     public offsetY: number = 0;
     public screenWidth: number = 0
@@ -19,6 +17,7 @@ export class GameMap {
     }
 
     async load(ImagePath: string) {
+        this.image = new Image();
         return new Promise<void>((resolve, reject) => {
             this.image.onload = () => {
                 this.isLoaded = true;
@@ -29,7 +28,6 @@ export class GameMap {
             }
             this.image.src = ImagePath
         })
-
     }
 
     draw() {

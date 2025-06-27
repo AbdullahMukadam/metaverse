@@ -12,6 +12,7 @@ import {
   getSocket,
   handleSpaceCreation,
   handleUserLeave,
+  LeftUserData,
   RemoteUserData,
   sendMovementUpdate,
   setupSocketListeners,
@@ -48,15 +49,29 @@ function GamePage() {
 
   useEffect(() => {
     if (!canvasRef.current) return;
+    console.log("GamePage mounted, canvasRef.current:", canvasRef.current);
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    gameMapRef.current = null;
+    characterRef.current = null;
+    inputHandlerRef.current = null;
+    collisionRef.current = null;
+    foregroundRef.current = null;
+    remoteUsersRef.current = {};
 
     const viewPort = { width: 1280, height: 720 };
+
     canvas.width = viewPort.width;
     canvas.height = viewPort.height;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = 0;
+    }
 
 
     gameMapRef.current = new GameMap(canvas, viewPort);
@@ -83,6 +98,7 @@ function GamePage() {
 
     const initGame = async () => {
       try {
+        console.log("initGame called");
         const response = await handleSpaceCreation(
           userData?.id,
           userData?.name,
@@ -101,6 +117,8 @@ function GamePage() {
           handleUserLeft
         );
 
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
 
         await Promise.all([
           gameMapRef.current?.load("/map/metaverse map(not-zoom).png"),
@@ -108,6 +126,7 @@ function GamePage() {
           foregroundRef.current?.load("/map/foreground image.png"),
           ...Object.values(remoteUsersRef.current).map(user => user.load())
         ]);
+        console.log("All assets loaded, starting game loop");
         startGameLoop();
       } catch (error) {
         console.error("Initialization error:", error);
@@ -176,10 +195,9 @@ function GamePage() {
       }
     };
 
-    const handleUserLeft = (userId: string) => {
-      const newUsers = { ...remoteUsersRef.current }; // Create new object
-      delete newUsers[userId];                     // Remove user
-      remoteUsersRef.current = newUsers;
+    const handleUserLeft = (data: LeftUserData) => {
+      delete remoteUsersRef.current[data.userId];
+      console.log("deleted user : ", remoteUsersRef.current);
     };
 
     const startGameLoop = () => {
@@ -245,34 +263,66 @@ function GamePage() {
 
 
     return () => {
+
       cancelAnimationFrame(animationFrameRef.current);
       if (socketRef.current) {
         socketRef.current.off("UserJoined");
         socketRef.current.off("UserMoved");
         socketRef.current.off("UserLeft");
-
+        socketRef.current = null;
+      }
+      characterRef.current = null;
+      gameMapRef.current = null;
+      inputHandlerRef.current = null;
+      collisionRef.current = null;
+      foregroundRef.current = null;
+      remoteUsersRef.current = {};
+      if (canvasRef.current) {
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
       }
 
     };
-  }, [collisionArrayData, selectedCharacter, userData?.id, userData?.name, dispatch, userData]);
+  }, [selectedCharacter, userData?.id, userData?.name]);
 
   const handleLeaveWorld = () => {
     if (!socketRef.current) return;
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = 0;
+    }
+
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+    }
 
     if (userData?.id) {
       handleUserLeave(userData.id);
     }
 
+    socketRef.current.off("UserJoined");
+    socketRef.current.off("UserMoved");
+    socketRef.current.off("UserLeft");
     socketRef.current.disconnect();
     socketRef.current = null;
 
+    if (gameMapRef.current) {
+      gameMapRef.current.isLoaded = false
+    }
+    gameMapRef.current = null;
+    characterRef.current = null;
+    inputHandlerRef.current = null;
+    collisionRef.current = null;
+    foregroundRef.current = null;
+    remoteUsersRef.current = {};
+
     dispatch(mapDismantleState());
-
-    // Show feedback
     toast("Leaving...");
-
-    // Route to dashboard
-    router.push("/dashboard");
+    router.push("/dashboard?refresh=true");
 
   };
 

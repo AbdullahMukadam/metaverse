@@ -1,6 +1,5 @@
 
 
-
 interface UserData {
     id: string;
     name: string;
@@ -19,7 +18,6 @@ export class Character {
     public isLoaded: boolean = false;
     public UserInfo: UserData;
 
-
     private currentFrame: number = 0;
     private frameCount: number = 0;
     private animationSpeed: number = 50;
@@ -27,9 +25,8 @@ export class Character {
     public direction: 'up' | 'down' | 'left' | 'right' = 'down';
     public isMoving: boolean = false;
 
-
-    private sprites: Record<'up' | 'down' | 'left' | 'right', HTMLImageElement>;
-    private currentSprite: HTMLImageElement;
+    public sprites: Record<'up' | 'down' | 'left' | 'right', HTMLImageElement>;
+    public currentSprite: HTMLImageElement;
 
     constructor(xPosition: number, yPosition: number, selectedCharacter: string, userData: UserData) {
         this.worldX = xPosition;
@@ -45,7 +42,6 @@ export class Character {
         };
         this.currentSprite = this.sprites.down
 
-
         if (selectedCharacter === "Male") {
             this.width = 23;
             this.height = 27;
@@ -57,10 +53,7 @@ export class Character {
             this.totalFrames = 8;
             this.animationSpeed = 8
         }
-
     }
-
-
 
     async load(): Promise<void> {
         const isMale = this.selectedCharacter === "Male";
@@ -129,7 +122,6 @@ export class Character {
             this.direction = 'right';
             this.isMoving = true;
         }
-
 
         if (this.isMoving) {
             this.frameCount++;

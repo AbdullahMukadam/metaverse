@@ -79,10 +79,15 @@ export const handleSpaceCreation = (
     });
 };
 
+export interface LeftUserData {
+    userId: string,
+    socketId: string
+}
+
 export const setupSocketListeners = (
     onUserJoined: (user: UsersData) => void,
     onUserMoved: (data: RemoteUserData) => void,
-    onUserLeft: (userId: string) => void
+    onUserLeft: (data: LeftUserData) => void
 ): void => {
     const socket = initializeSocket();
 

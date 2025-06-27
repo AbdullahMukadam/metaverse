@@ -1,7 +1,10 @@
 import DashboardComp from '@/components/dashboard/DashboardComp'
+import RefreshHandler from '@/components/RefreshHandler';
 import { auth } from '@/utils/auth'
 import { headers } from 'next/headers'
 import React from 'react'
+
+export const dynamic = 'force-dynamic'; 
 
 async function page() {
 
@@ -19,6 +22,7 @@ async function page() {
 
   return (
     <div className='w-full p-4 h-screen'>
+      <RefreshHandler />
       <DashboardComp userData={session.user} />
     </div>
   )
