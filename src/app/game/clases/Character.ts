@@ -146,14 +146,47 @@ export class Character {
         try {
             const frameWidth = this.currentSprite.width / this.totalFrames;
             const frameHeight = this.currentSprite.height;
-            const displayName = this.UserInfo.name.split(" ")[0] || this.UserInfo.name
+            const displayName = this.UserInfo.name.split(" ")[0] || this.UserInfo.name;
 
-            ctx.fillStyle = 'black';
+
             ctx.font = 'bold 12px Arial';
-            ctx.strokeStyle = 'black';
-            ctx.lineWidth = 2;
+            const textWidth = ctx.measureText(displayName).width;
+            const textHeight = 12;
+            const padding = 4;
+
+
+            ctx.beginPath();
+            const bgX = this.worldX + this.width / 2 - textWidth / 2 - padding;
+            const bgY = this.worldY - textHeight - padding - 5;
+            const bgWidth = textWidth + padding * 2;
+            const bgHeight = textHeight + padding * 2;
+
+
+            if (ctx.roundRect) {
+                ctx.roundRect(bgX, bgY, bgWidth, bgHeight, 4);
+            } else {
+                // for older browsers
+                const radius = 4;
+                ctx.moveTo(bgX + radius, bgY);
+                ctx.lineTo(bgX + bgWidth - radius, bgY);
+                ctx.quadraticCurveTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + radius);
+                ctx.lineTo(bgX + bgWidth, bgY + bgHeight - radius);
+                ctx.quadraticCurveTo(bgX + bgWidth, bgY + bgHeight, bgX + bgWidth - radius, bgY + bgHeight);
+                ctx.lineTo(bgX + radius, bgY + bgHeight);
+                ctx.quadraticCurveTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - radius);
+                ctx.lineTo(bgX, bgY + radius);
+                ctx.quadraticCurveTo(bgX, bgY, bgX + radius, bgY);
+            }
+
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+            ctx.fill();
+
+
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(displayName, this.worldX + this.width / 2, this.worldY - 5);
+            ctx.fillText(displayName, this.worldX + this.width / 2, this.worldY - 8);
+
 
             ctx.drawImage(
                 this.currentSprite,

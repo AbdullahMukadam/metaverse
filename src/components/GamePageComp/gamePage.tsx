@@ -19,9 +19,10 @@ import {
   UsersData
 } from '@/utils/Socket';
 import { useRouter } from 'next/navigation';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { toast } from 'sonner';
+import Voicechat from '../VoiceChat/Voicechat';
 
 
 function GamePage() {
@@ -45,6 +46,7 @@ function GamePage() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const collisionArrayData = exportArray;
+  const [isOpen, setisOpen] = useState(false)
 
 
   useEffect(() => {
@@ -342,14 +344,30 @@ function GamePage() {
         />
       </div>
 
-      <div className='absolute z-10 right-3 bottom-[10%] p-3'>
+      <button
+        className="absolute text-white cursor-pointer z-10 right-4 top-2 p-2 border-black rounded-md bg-red-400 border-[1px] font-michroma"
+        onClick={() => setisOpen((prev) => !prev)}
+      >
+        {isOpen ? "Close" : "Controls"}
+      </button>
+
+      <div
+        className={`absolute z-10 right-4 top-14 p-3 bg-black/70 rounded-xl shadow-lg flex flex-col items-end space-y-3 font-michroma
+    transition-all duration-300 ease-in-out transform
+    ${isOpen ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}
+  `}
+      >
         <button
-          className='p-2 bg-red-500 font-semibold cursor-pointer z-10 rounded-2xl border border-black font-michroma text-white hover:bg-red-600 transition-colors'
           onClick={handleLeaveWorld}
+          className="px-4 py-2 bg-red-600 cursor-pointer text-white text-sm font-semibold border border-red-700 rounded-lg 
+      hover:bg-red-700 transition-all shadow-md"
         >
           Leave World
         </button>
+        <Voicechat />
       </div>
+
+
     </div>
   );
 }

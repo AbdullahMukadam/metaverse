@@ -1,5 +1,8 @@
+import { IncomingAudioData } from "@/components/VoiceChat/Voicechat";
+import { config } from "dotenv";
 import { io, Socket } from "socket.io-client";
 
+config({ path: ".env" });
 let socket: Socket | null = null;
 
 export interface UsersData {
@@ -35,7 +38,7 @@ export interface RemoteUserData extends UserMovementData {
 
 export const initializeSocket = (): Socket => {
     if (!socket) {
-        socket = io("http://localhost:8000", {
+        socket = io(process.env.NEXT_PUBLIC_BACKEND_URL as string, {
             reconnectionAttempts: 0,
             reconnectionDelay: 1000,
             autoConnect: false
@@ -95,6 +98,14 @@ export const setupSocketListeners = (
     socket.on("UserMoved", onUserMoved);
     socket.on("UserLeft", onUserLeft);
 };
+
+export const IncomingAudioListener = (
+    handleIncomingAudio: (data: IncomingAudioData) => void
+): void => {
+    const socket = initializeSocket();
+
+    socket.on("incomingAudio", handleIncomingAudio);
+}
 
 
 export const sendMovementUpdate = (data: UserMovementData) => {

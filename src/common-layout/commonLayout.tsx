@@ -23,7 +23,6 @@ function CommonLayout({ children }: LayoutProps) {
                 priority
             />
 
-            {/* Content area */}
             <div className="relative z-10">
                 {!isMapLoaded && <div className="w-full">
                     <Navbar />

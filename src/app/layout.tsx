@@ -23,7 +23,7 @@ const sansMichroma = Michroma({
 })
 
 export const metadata: Metadata = {
-  title: "Meteverse",
+  title: "Metaverse",
   description: "2d Metaverse",
 };
 
