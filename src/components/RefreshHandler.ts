@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 function RefreshHandler() {
     const searchParams = useSearchParams();
 
+    //this is the refresh handler and it will handle the page refresh when user redirect from gamepage to dashboard
     useEffect(() => {
         const handleRefresh = () => {
             const refreshParam = searchParams.get('refresh');
