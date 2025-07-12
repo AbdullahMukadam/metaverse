@@ -34,7 +34,7 @@ function Navbar() {
     const navItems: NavItems[] = [
         {
             name: "About",
-            url: "/about",
+            url: "/learnmore",
             visible: !authStatus
         },
         {

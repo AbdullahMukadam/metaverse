@@ -55,9 +55,9 @@ function Hero() {
                         <Link href={"/signUp"} className='px-8 py-4 bg-white text-black font-bold rounded-full hover:bg-gray-100 transition-all duration-300 hover:scale-105 shadow-lg'>
                             Explore Now
                         </Link>
-                        <button className='px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-full hover:bg-white hover:text-black transition-all duration-300 hover:scale-105'>
+                        <Link href={"/learnmore"} className='px-8 py-4 bg-transparent border-2 border-white text-white font-bold rounded-full hover:bg-white hover:text-black transition-all duration-300 hover:scale-105'>
                             Learn More
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>
@@ -73,7 +73,7 @@ function Hero() {
                     <h2 className='font-bold text-black text-base md:text-lg'>Step into the future where digital worlds become reality</h2>
                     <p className='text-[14px] md:text-lg'>Customize your avatar and join millions in shared virtual spaces.</p>
 
-                    <div className='w-full p-3'>
+                    <div className='w-full p-3 mb-3'>
                         <p className='text-[12px] md:text-base'>
                             <span className='font-semibold block mb-1'>Choose your character:</span>
                             • Male • Female 
@@ -84,10 +84,10 @@ function Hero() {
                         </p>
                     </div>
 
-                    <button className='p-3 rounded-3xl border-2 relative group'>
+                    <Link href={"/signUp"} className='p-3 rounded-3xl border-2 relative group border-black'>
                         <span className='w-0 h-full absolute transition-all ease-in-out duration-300 bg-black top-0 left-0 rounded-3xl group-hover:w-full'></span>
-                        <span className='group-hover:text-white relative'>Get Started</span>
-                    </button>
+                        <span className='group-hover:text-white relative'>Try Voice Chat</span>
+                    </Link>
                 </div>
                 <div className='w-full h-[400px] md:w-[50%]'>
                     <Image
@@ -116,25 +116,25 @@ function Hero() {
                 <div className='w-full md:w-[50%] p-4 h-[400px] rounded-2xl bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2] border-2 border-solid border-black'>
                     <h2 className='font-bold text-black text-base md:text-lg'>Step into the future where digital worlds become reality</h2>
                     <p className='text-[14px] md:text-lg'>Join a vibrant metaverse where you can voice-chat with friends, collaborate in shared 3D spaces, and create memories together—no matter where you are.</p>
-                    <div className='w-full p-3'>
+                    <div className='w-full p-3 mb-3'>
                         <p className='text-[12px] md:text-base'>Explore immersive worlds with spatial audio, real-time avatar interactions, and user-generated content. Host events, build virtual offices, or just hang out—all in a seamless cross-platform experience.</p>
                     </div>
-                    <button className='p-3 rounded-3xl border-2 relative group'>
+                    <Link href={"/signUp"} className='p-3 rounded-3xl border-2 relative border-black group'>
                         <span className='w-0 h-full absolute transition-all ease-in-out duration-300 bg-black top-0 left-0 rounded-3xl group-hover:w-full'></span>
-                        <span className='group-hover:text-white relative'>Get Started</span>
-                    </button>
+                        <span className='group-hover:text-white relative'>Explore World</span>
+                    </Link>
                 </div>
             </div>
             <div className='w-full p-2 flex flex-col md:flex-row bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2] mt-2 border-2 border-black'>
                 <div className='w-full'>
                     <h1 className='font-bold text-xl'>Metaverse</h1>
-                    <div className='w-full p-1'>
+                    <div className='w-full p-1 mb-3'>
                         <p className='md:text-xl'> Step into the future where digital worlds become reality.</p>
                     </div>
-                    <button className='hidden p-3 rounded-3xl border-2 relative group mt-2 md:block'>
+                    <Link href={"/signUp"} className='hidden p-3 rounded-3xl w-fit border-2 relative group mt-2 border-black md:block'>
                         <span className='w-0 h-full absolute transition-all ease-in-out duration-300 bg-black top-0 left-0 rounded-3xl group-hover:w-full'></span>
                         <span className='group-hover:text-white relative'>Get Started</span>
-                    </button>
+                    </Link>
                 </div>
                 <div className='w-full flex items-center justify-center'>
                     <Image src={"/portraitshingshing-1.webp"} width={250} height={250} alt='character' unoptimized />
