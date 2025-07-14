@@ -23,6 +23,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Socket } from 'socket.io-client';
 import { toast } from 'sonner';
 import Voicechat from '../VoiceChat/Voicechat';
+import { exportRoomEnterArray } from '@/utils/roomEnterData';
+import { roomEnterDetect } from '@/app/game/clases/roomEnterDetect';
+import { RoomMap } from '@/app/game/clases/RoomMap';
+import { ExportroomCollisionArray } from '@/utils/RoomCollisionsData';
+import { RoomForeground } from '@/app/game/clases/RoomForeground';
 
 function GamePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,12 +40,18 @@ function GamePage() {
   const animationFrameRef = useRef<number>(0);
   const socketRef = useRef<Socket>(null);
   const lastNetworkUpdate = useRef<number>(0);
+  const roomEnterDetectRef = useRef<roomEnterDetect>(null);
+  const RoomMapRef = useRef<RoomMap>(null);
+  const RoomCollisionsRef = useRef<Collision>(null);
+  const roomForeGroundRef = useRef<RoomForeground>(null)
 
   const selectedCharacter = useAppSelector((state) => state.map.character);
   const userData = useAppSelector((state) => state.auth.userData);
   const dispatch = useAppDispatch();
   const router = useRouter();
   const collisionArrayData = exportArray;
+  const roomEnterArrayData = exportRoomEnterArray;
+  const roomCollisionsDataArray = ExportroomCollisionArray;
 
   const [isOpen, setisOpen] = useState(false);
   const [loadingStates, setLoadingStates] = useState({
@@ -49,10 +60,58 @@ function GamePage() {
     loadingAssets: false,
     ready: false
   });
+  const [isTransitionShowed, setisTransitionShowed] = useState(false);
+  const [isInRoom, setisInRoom] = useState(false);
 
-  
   const updateLoadingState = (updates: Partial<typeof loadingStates>) => {
     setLoadingStates(prev => ({ ...prev, ...updates }));
+  };
+
+  const initializeRoomCollisions = () => {
+    if (RoomMapRef.current) {
+      const tileValue = 555;
+      RoomCollisionsRef.current = new Collision(roomCollisionsDataArray, tileValue, RoomMapRef.current);
+      RoomCollisionsRef.current.tileHeight = 16;
+      RoomCollisionsRef.current.tileWidth = 16;
+
+    }
+  };
+
+  const startRoomGameLoop = () => {
+    const RoomgameLoop = () => {
+      if (!canvasRef.current) return;
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d")!;
+
+      if (!ctx || !characterRef.current || !inputHandlerRef.current ||
+        !RoomMapRef.current || !RoomCollisionsRef.current || !roomForeGroundRef.current) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Store previous position for collision detection
+      const prevX = characterRef.current.worldX;
+      const prevY = characterRef.current.worldY;
+
+      // Update character
+      characterRef.current.update(inputHandlerRef.current.keys);
+
+      // Check for collision and revert if needed
+      if (RoomCollisionsRef.current.detectCollision(characterRef.current)) {
+        characterRef.current.worldX = prevX;
+        characterRef.current.worldY = prevY;
+      }
+
+      // Draw everything
+      RoomMapRef.current.draw(ctx);
+      RoomCollisionsRef.current.draw(ctx);
+      characterRef.current.draw(ctx);
+      roomForeGroundRef.current?.draw(ctx)
+
+      animationFrameRef.current = requestAnimationFrame(RoomgameLoop);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(RoomgameLoop);
   };
 
   useEffect(() => {
@@ -70,37 +129,42 @@ function GamePage() {
       ready: false
     });
 
-   
     const viewPort = { width: 1280, height: 720 };
     canvas.width = viewPort.width;
     canvas.height = viewPort.height;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    
-    ctx.fillStyle = '#1f2937'; // gray800
+    ctx.fillStyle = '#1f2937';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#ffffff';
     ctx.font = '24px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Initializing Game...', canvas.width / 2, canvas.height / 2);
 
-    
+    // Reset all refs
     gameMapRef.current = null;
     characterRef.current = null;
     inputHandlerRef.current = null;
     collisionRef.current = null;
     foregroundRef.current = null;
     remoteUsersRef.current = {};
+    RoomCollisionsRef.current = null;
+    roomForeGroundRef.current = null
 
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = 0;
     }
 
-   
+    const tileValue = 1025;
+
+    // Initialize game objects
     gameMapRef.current = new GameMap(canvas, viewPort);
-    collisionRef.current = new Collision(collisionArrayData);
+    collisionRef.current = new Collision(collisionArrayData, tileValue);
+    roomEnterDetectRef.current = new roomEnterDetect(roomEnterArrayData);
+    RoomMapRef.current = new RoomMap(viewPort, canvas);
     foregroundRef.current = new ForegroundObjects(viewPort);
+    roomForeGroundRef.current = new RoomForeground(viewPort, RoomMapRef.current)
     socketRef.current = getSocket();
 
     const characterWidth = selectedCharacter === "Male" ? 70 : 110;
@@ -123,7 +187,6 @@ function GamePage() {
         console.log("initGame called");
         updateLoadingState({ initializing: false, connectingSocket: true });
 
-        
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#1f2937';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -149,7 +212,6 @@ function GamePage() {
 
         updateLoadingState({ connectingSocket: false, loadingAssets: true });
 
-        
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#1f2937';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -177,11 +239,10 @@ function GamePage() {
           ready: false
         });
 
-        
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#1f2937';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#ef4444'; // red500
+        ctx.fillStyle = '#ef4444';
         ctx.fillText('Failed to initialize game', canvas.width / 2, canvas.height / 2);
       }
     };
@@ -235,16 +296,19 @@ function GamePage() {
     };
 
     const startGameLoop = () => {
-      const gameLoop = () => {
+      const gameLoop = async () => {
         if (!ctx || !characterRef.current || !inputHandlerRef.current ||
           !gameMapRef.current || !collisionRef.current ||
-          !foregroundRef.current) return;
+          !foregroundRef.current || !roomEnterDetectRef.current || !RoomMapRef.current || !roomForeGroundRef.current) return;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
         const prevX = characterRef.current.worldX;
         const prevY = characterRef.current.worldY;
-        characterRef.current.update(inputHandlerRef.current.keys);
+
+        if (!roomEnterDetectRef.current.isUserEnteredZone) {
+          characterRef.current.update(inputHandlerRef.current.keys);
+        }
 
         Object.values(remoteUsersRef.current).forEach(user => {
           user.update();
@@ -253,6 +317,38 @@ function GamePage() {
         if (collisionRef.current.detectCollision(characterRef.current)) {
           characterRef.current.worldX = prevX;
           characterRef.current.worldY = prevY;
+        }
+
+        if (roomEnterDetectRef.current.detectRoomEnterZone(characterRef.current)) {
+          roomEnterDetectRef.current.switchbetweenScenes(animationFrameRef.current);
+          setisTransitionShowed(true);
+          setisInRoom(true);
+          animationFrameRef.current = 0;
+
+          await Promise.all([
+            RoomMapRef.current.load("/map/Room.png"),
+            roomForeGroundRef.current.load("/map/RoomForeground.png")
+          ])
+          initializeRoomCollisions();
+
+          setisTransitionShowed(false);
+
+          if (characterRef.current) {
+            characterRef.current.worldX = 700;
+            characterRef.current.worldY = 500;
+            characterRef.current.speed = 1.4;
+
+            if (characterRef.current.selectedCharacter === "Male") {
+              characterRef.current.width = 32;
+              characterRef.current.height = 40;
+            } else {
+              characterRef.current.width = 42;
+              characterRef.current.height = 48;
+            }
+          }
+
+          startRoomGameLoop();
+          return;
         }
 
         const movementData = {
@@ -271,6 +367,7 @@ function GamePage() {
 
         gameMapRef.current.draw();
         collisionRef.current.draw(ctx);
+        roomEnterDetectRef.current?.draw(ctx);
         characterRef.current.draw(ctx);
 
         Object.values(remoteUsersRef.current).forEach(user => {
@@ -278,11 +375,13 @@ function GamePage() {
         });
 
         foregroundRef.current.draw(ctx);
-
+        console.log("running...");
         animationFrameRef.current = requestAnimationFrame(gameLoop);
       };
 
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
+      if (!isInRoom) {
+        gameLoop();
+      }
     };
 
     initGame();
@@ -301,6 +400,7 @@ function GamePage() {
       collisionRef.current = null;
       foregroundRef.current = null;
       remoteUsersRef.current = {};
+      RoomCollisionsRef.current = null;
       if (canvasRef.current) {
         const ctx = canvasRef.current.getContext('2d');
         if (ctx) ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -342,13 +442,13 @@ function GamePage() {
     collisionRef.current = null;
     foregroundRef.current = null;
     remoteUsersRef.current = {};
+    RoomCollisionsRef.current = null;
 
     dispatch(mapDismantleState());
     toast("Leaving...");
     router.push("/dashboard?refresh=true");
   };
 
-  
   const getLoadingMessage = () => {
     if (loadingStates.initializing) return "Initializing...";
     if (loadingStates.connectingSocket) return "Connecting to server...";
@@ -361,6 +461,19 @@ function GamePage() {
   return (
     <div className='relative w-full h-screen bg-gray-900'>
       <div className='w-full h-full flex items-center justify-center'>
+        {isTransitionShowed && (
+          <div className='absolute inset-0 bg-black/50 flex items-center justify-center z-50'>
+            <div className='bg-gray-800 p-6 rounded-lg shadow-lg text-center'>
+              <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4'></div>
+              <h1 className='text-white font-bold font-michroma text-lg'>
+                Hang On a little
+              </h1>
+              <div className='mt-2 text-gray-400 text-sm'>
+                Please wait while we prepare your game...
+              </div>
+            </div>
+          </div>
+        )}
         <canvas
           ref={canvasRef}
           className='border border-black shadow-lg'

@@ -1,8 +1,11 @@
+
+
 export class ForegroundObjects {
     public image: HTMLImageElement
     public isLoaded: boolean = false
     public screenWidth: number = 0
     public screenHeight: number = 0
+    
 
     constructor(viewPort: { width: number, height: number }) {
         this.image = new Image()
