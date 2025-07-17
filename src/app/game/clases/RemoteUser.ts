@@ -11,6 +11,9 @@ export class RemoteUser {
     public userName: string;
     public isActive: boolean = true
 
+    public newWidthforHouse?: number;
+    public newHeightforHouse?: number;
+
 
     private currentFrame: number = 0;
     private frameCount: number = 0;
@@ -29,13 +32,17 @@ export class RemoteUser {
         yPosition: number,
         selectedCharacter: string,
         userId: string,
-        userName: string
+        userName: string,
+        newWidth?: number,
+        newHeigth?: number
     ) {
         this.worldX = xPosition;
         this.worldY = yPosition;
         this.selectedCharacter = selectedCharacter;
         this.userId = userId;
         this.userName = userName
+        this.newWidthforHouse = newWidth;
+        this.newHeightforHouse = newHeigth
 
         this.sprites = {
             up: new Image(),
@@ -46,13 +53,23 @@ export class RemoteUser {
         this.currentSprite = this.sprites.down;
 
         if (selectedCharacter === "Male") {
-            this.width = 23;
-            this.height = 27;
+            if (newWidth && newHeigth) {
+                this.width = newWidth
+                this.height = newHeigth
+            } else {
+                this.width = 23;
+                this.height = 27;
+            }
             this.totalFrames = 4;
             this.animationSpeed = 20;
         } else {
-            this.width = 27;
-            this.height = 32;
+            if (newWidth && newHeigth) {
+                this.width = newWidth
+                this.height = newHeigth
+            } else {
+                this.width = 27;
+                this.height = 32;
+            }
             this.totalFrames = 8;
             this.animationSpeed = 8;
         }

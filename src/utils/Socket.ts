@@ -38,7 +38,8 @@ export interface RemoteUserData extends UserMovementData {
 
 export const initializeSocket = (): Socket => {
     if (!socket) {
-        socket = io(process.env.NEXT_PUBLIC_BACKEND_URL as string, {
+        console.log(process.env.NEXT_PUBLIC_BACKEND_URL as string)
+        socket = io("http://localhost:8000", {
             reconnectionAttempts: 0,
             reconnectionDelay: 1000,
             autoConnect: false
@@ -90,14 +91,27 @@ export interface LeftUserData {
 export const setupSocketListeners = (
     onUserJoined: (user: UsersData) => void,
     onUserMoved: (data: RemoteUserData) => void,
-    onUserLeft: (data: LeftUserData) => void
+    onUserLeft: (data: LeftUserData) => void,
+    onHouseUserJoined: (user: UsersData) => void,
+    onHouseUserMoved: (data: RemoteUserData) => void
 ): void => {
     const socket = initializeSocket();
 
     socket.on("UserJoined", onUserJoined);
     socket.on("UserMoved", onUserMoved);
     socket.on("UserLeft", onUserLeft);
+    socket.on("HouseUserJoined", onHouseUserJoined);
+    socket.on("HouseUserMoved", onHouseUserMoved);
 };
+
+export const removeSocketListeners = () => {
+    const socket = initializeSocket();
+    socket.off("UserJoined");
+    socket.off("UserMoved");
+    socket.off("UserLeft");
+    socket.off("HouseUserJoined");
+    socket.off("HouseUserMoved");
+  };
 
 export const IncomingAudioListener = (
     handleIncomingAudio: (data: IncomingAudioData) => void
@@ -117,6 +131,36 @@ export const handleUserLeave = (userId: string) => {
     const socket = initializeSocket()
     socket.emit("disconnection", {
         userId
+    })
+}
+
+export const sendHouseMovementUpdate = (data: UserMovementData) => {
+    const socket = initializeSocket();
+    socket.emit("UpdateHousePosition", data);
+};
+
+export const handleUserEnteredRoom = (
+    id: string | undefined,
+    name: string | undefined,
+    positions: { X: number; Y: number },
+    selectedCharacter: string
+): Promise<UsersData[] | false> => {
+    return new Promise((resolve) => {
+        const socket = initializeSocket()
+        socket.emit("enteredHouseRoom", {
+            userId: id,
+            UserName: name,
+            positions,
+            selectedCharacter
+        })
+
+        socket.on("HouseRoomJoined", (data: SpaceJoinedResponse) => {
+            resolve(data.UsersArr.length > 0 ? data.UsersArr : false);
+        });
+
+        socket.on("connect_error", () => {
+            resolve(false);
+        });
     })
 }
 

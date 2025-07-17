@@ -11,9 +11,11 @@ import { exportArray } from '@/utils/collisionsData';
 import {
   getSocket,
   handleSpaceCreation,
+  handleUserEnteredRoom,
   handleUserLeave,
   LeftUserData,
   RemoteUserData,
+  sendHouseMovementUpdate,
   sendMovementUpdate,
   setupSocketListeners,
   UsersData
@@ -28,6 +30,8 @@ import { roomEnterDetect } from '@/app/game/clases/roomEnterDetect';
 import { RoomMap } from '@/app/game/clases/RoomMap';
 import { ExportroomCollisionArray } from '@/utils/RoomCollisionsData';
 import { RoomForeground } from '@/app/game/clases/RoomForeground';
+import { ExportroomOutDataArray } from '@/utils/roomOutData';
+import { roomLeaveDetect } from '@/app/game/clases/roomLeaveDetect';
 
 function GamePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -37,13 +41,15 @@ function GamePage() {
   const collisionRef = useRef<Collision>(null);
   const foregroundRef = useRef<ForegroundObjects>(null);
   const remoteUsersRef = useRef<Record<string, RemoteUser>>({});
+  const remoteUsersHouseRef = useRef<Record<string, RemoteUser>>({})
   const animationFrameRef = useRef<number>(0);
   const socketRef = useRef<Socket>(null);
   const lastNetworkUpdate = useRef<number>(0);
   const roomEnterDetectRef = useRef<roomEnterDetect>(null);
   const RoomMapRef = useRef<RoomMap>(null);
   const RoomCollisionsRef = useRef<Collision>(null);
-  const roomForeGroundRef = useRef<RoomForeground>(null)
+  const roomForeGroundRef = useRef<RoomForeground>(null);
+  const roomLeaveDetectRef = useRef<roomLeaveDetect>(null);
 
   const selectedCharacter = useAppSelector((state) => state.map.character);
   const userData = useAppSelector((state) => state.auth.userData);
@@ -52,6 +58,7 @@ function GamePage() {
   const collisionArrayData = exportArray;
   const roomEnterArrayData = exportRoomEnterArray;
   const roomCollisionsDataArray = ExportroomCollisionArray;
+  const roomLeaveArrayData = ExportroomOutDataArray
 
   const [isOpen, setisOpen] = useState(false);
   const [loadingStates, setLoadingStates] = useState({
@@ -62,6 +69,7 @@ function GamePage() {
   });
   const [isTransitionShowed, setisTransitionShowed] = useState(false);
   const [isInRoom, setisInRoom] = useState(false);
+  const [currentMap, setcurrentMap] = useState("Default")
 
   const updateLoadingState = (updates: Partial<typeof loadingStates>) => {
     setLoadingStates(prev => ({ ...prev, ...updates }));
@@ -74,6 +82,7 @@ function GamePage() {
       RoomCollisionsRef.current.tileHeight = 16;
       RoomCollisionsRef.current.tileWidth = 16;
 
+
     }
   };
 
@@ -85,27 +94,51 @@ function GamePage() {
       const ctx = canvas.getContext("2d")!;
 
       if (!ctx || !characterRef.current || !inputHandlerRef.current ||
-        !RoomMapRef.current || !RoomCollisionsRef.current || !roomForeGroundRef.current) return;
+        !RoomMapRef.current || !RoomCollisionsRef.current || !roomForeGroundRef.current || !roomLeaveDetectRef.current) return;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Store previous position for collision detection
+      
       const prevX = characterRef.current.worldX;
       const prevY = characterRef.current.worldY;
 
-      // Update character
+      
       characterRef.current.update(inputHandlerRef.current.keys);
 
-      // Check for collision and revert if needed
+      
       if (RoomCollisionsRef.current.detectCollision(characterRef.current)) {
         characterRef.current.worldX = prevX;
         characterRef.current.worldY = prevY;
       }
 
-      // Draw everything
+      if (roomLeaveDetectRef.current.detectRoomLeaveZone(characterRef.current)) {
+        console.log("leaved")
+      }
+
+      const movementData = {
+        positions: {
+          X: characterRef.current.worldX,
+          Y: characterRef.current.worldY
+        },
+        direction: characterRef.current.direction,
+        isMoving: characterRef.current.isMoving
+      };
+
+      if (Date.now() - lastNetworkUpdate.current > 100) {
+        sendHouseMovementUpdate(movementData);
+        lastNetworkUpdate.current = Date.now();
+      }
+
+      
       RoomMapRef.current.draw(ctx);
       RoomCollisionsRef.current.draw(ctx);
+      roomLeaveDetectRef.current.draw(ctx)
       characterRef.current.draw(ctx);
+
+      Object.values(remoteUsersHouseRef.current).forEach(user => {
+        user.draw(ctx);
+      });
+
       roomForeGroundRef.current?.draw(ctx)
 
       animationFrameRef.current = requestAnimationFrame(RoomgameLoop);
@@ -141,15 +174,17 @@ function GamePage() {
     ctx.textAlign = 'center';
     ctx.fillText('Initializing Game...', canvas.width / 2, canvas.height / 2);
 
-    // Reset all refs
+    
     gameMapRef.current = null;
     characterRef.current = null;
     inputHandlerRef.current = null;
     collisionRef.current = null;
+    roomEnterDetectRef.current = null
     foregroundRef.current = null;
     remoteUsersRef.current = {};
     RoomCollisionsRef.current = null;
-    roomForeGroundRef.current = null
+    roomForeGroundRef.current = null;
+    roomLeaveDetectRef.current = null;
 
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
@@ -158,10 +193,11 @@ function GamePage() {
 
     const tileValue = 1025;
 
-    // Initialize game objects
+    
     gameMapRef.current = new GameMap(canvas, viewPort);
     collisionRef.current = new Collision(collisionArrayData, tileValue);
     roomEnterDetectRef.current = new roomEnterDetect(roomEnterArrayData);
+    roomLeaveDetectRef.current = new roomLeaveDetect(roomLeaveArrayData)
     RoomMapRef.current = new RoomMap(viewPort, canvas);
     foregroundRef.current = new ForegroundObjects(viewPort);
     roomForeGroundRef.current = new RoomForeground(viewPort, RoomMapRef.current)
@@ -207,7 +243,9 @@ function GamePage() {
         setupSocketListeners(
           handleUserJoined,
           handleUserMoved,
-          handleUserLeft
+          handleUserLeft,
+          handleHouseUserJoined,
+          handleHouseUserMoved
         );
 
         updateLoadingState({ connectingSocket: false, loadingAssets: true });
@@ -263,6 +301,30 @@ function GamePage() {
       }
     };
 
+    const initRemoteUsersHouse = async (users: UsersData[]) => {
+      for (const user of users) {
+        if (user.userId !== userData?.id) {
+          const CharacterDimensions = {
+            width: user.selectedCharacter === "Male" ? 32 : 42,
+            heigth: user.selectedCharacter === 'Male' ? 40 : 48
+          }
+          const remoteUser = new RemoteUser(
+            user.positions.X,
+            user.positions.Y,
+            user.selectedCharacter,
+            user.userId,
+            user.UserName,
+            CharacterDimensions.width,
+            CharacterDimensions.heigth
+          );
+          remoteUsersHouseRef.current[user.userId] = remoteUser;
+          await remoteUser.load();
+        }
+      }
+    };
+
+
+
     const handleUserJoined = (newUser: UsersData) => {
       if (newUser.userId !== userData?.id) {
         const remoteUser = new RemoteUser(
@@ -292,7 +354,41 @@ function GamePage() {
 
     const handleUserLeft = (data: LeftUserData) => {
       delete remoteUsersRef.current[data.userId];
-      console.log("deleted user : ", remoteUsersRef.current);
+      delete remoteUsersHouseRef.current[data.userId]
+      //console.log("deleted user : ", remoteUsersRef.current);
+    };
+
+    const handleHouseUserJoined = (newUser: UsersData) => {
+      if (newUser.userId !== userData?.id) {
+        const CharacterDimensions = {
+          width: newUser.selectedCharacter === "Male" ? 32 : 42,
+          heigth: newUser.selectedCharacter === 'Male' ? 40 : 48
+        }
+        const remoteUser = new RemoteUser(
+          newUser.positions.X,
+          newUser.positions.Y,
+          newUser.selectedCharacter,
+          newUser.userId,
+          newUser.UserName,
+          CharacterDimensions.width,
+          CharacterDimensions.heigth
+        );
+
+        remoteUser.load().then(() => {
+          remoteUsersHouseRef.current[newUser.userId] = remoteUser;
+        });
+      }
+    };
+
+    const handleHouseUserMoved = (data: RemoteUserData) => {
+      const remoteUser = remoteUsersHouseRef.current[data.userId];
+      if (remoteUser && remoteUser.userId !== userData?.id) {
+        remoteUser.updateFromNetwork({
+          positions: data.positions,
+          direction: data.direction,
+          isMoving: data.isMoving
+        });
+      }
     };
 
     const startGameLoop = () => {
@@ -320,8 +416,43 @@ function GamePage() {
         }
 
         if (roomEnterDetectRef.current.detectRoomEnterZone(characterRef.current)) {
-          roomEnterDetectRef.current.switchbetweenScenes(animationFrameRef.current);
           setisTransitionShowed(true);
+          setcurrentMap("House")
+          const RoomPositions = {
+            X: 700,
+            Y: 500
+          }
+
+
+          const response = await handleUserEnteredRoom(
+            userData?.id,
+            userData?.name,
+            RoomPositions,
+            selectedCharacter
+          )
+
+          if (Array.isArray(response)) {
+            remoteUsersRef.current = {};
+            await initRemoteUsersHouse(response);
+            console.log("user responsr:", response)
+          }
+
+          if (characterRef.current) {
+            characterRef.current.worldX = RoomPositions.X;
+            characterRef.current.worldY = RoomPositions.Y;
+            characterRef.current.speed = 1.4;
+
+            if (characterRef.current.selectedCharacter === "Male") {
+              characterRef.current.width = 32;
+              characterRef.current.height = 40;
+            } else {
+              characterRef.current.width = 42;
+              characterRef.current.height = 48;
+            }
+          }
+
+          roomEnterDetectRef.current.switchbetweenScenes(animationFrameRef.current);
+
           setisInRoom(true);
           animationFrameRef.current = 0;
 
@@ -333,19 +464,7 @@ function GamePage() {
 
           setisTransitionShowed(false);
 
-          if (characterRef.current) {
-            characterRef.current.worldX = 700;
-            characterRef.current.worldY = 500;
-            characterRef.current.speed = 1.4;
 
-            if (characterRef.current.selectedCharacter === "Male") {
-              characterRef.current.width = 32;
-              characterRef.current.height = 40;
-            } else {
-              characterRef.current.width = 42;
-              characterRef.current.height = 48;
-            }
-          }
 
           startRoomGameLoop();
           return;
@@ -370,9 +489,11 @@ function GamePage() {
         roomEnterDetectRef.current?.draw(ctx);
         characterRef.current.draw(ctx);
 
-        Object.values(remoteUsersRef.current).forEach(user => {
-          user.draw(ctx);
-        });
+        if (currentMap === "Default") {
+          Object.values(remoteUsersRef.current).forEach(user => {
+            user.draw(ctx);
+          });
+        }
 
         foregroundRef.current.draw(ctx);
         console.log("running...");

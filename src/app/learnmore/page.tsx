@@ -10,7 +10,7 @@ function LearnMore() {
             <div className='relative z-10 px-4 py-16'>
                 <div className='max-w-6xl mx-auto text-center space-y-8'>
                     <div className='space-y-4'>
-                        <h1 className='font-bold text-4xl md:text-6xl lg:text-7xl text-white tracking-tighter drop-shadow-2xl'>
+                        <h1 className='font-bold text-4xl md:text-6xl lg:text-7xl text-zinc-900 tracking-tighter drop-shadow-2xl'>
                             LEARN MORE
                         </h1>
                         <h2 className='font-bold text-3xl md:text-5xl lg:text-6xl text-white tracking-tighter drop-shadow-2xl'>

@@ -24,12 +24,10 @@ export class Collision {
         this.tilevalue = tileValue
         this.roomMap = roomMap;
 
-        // Create boundary array based on whether roomMap exists
         this.createBoundaryArray();
     }
 
     createBoundaryArray() {
-        // Clear existing boundaries
         this.boundaryArray = [];
         this.scaleFactor = this.roomMap ? 3 : 1.5;
         this.tileHeight = this.roomMap ? 16 : 12;
@@ -46,7 +44,6 @@ export class Collision {
                     // const finalY = this.roomMap ? baseY + this.roomMap.offsetY : baseY;
                     //console.log(finalX, finalY)
 
-                    // Apply room map offset if available
 
                     let finalX = baseX;
                     let finalY = baseY;
