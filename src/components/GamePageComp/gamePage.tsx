@@ -61,8 +61,8 @@ function GamePage() {
   const [isOpen, setisOpen] = useState(false);
   const [loadingStates, setLoadingStates] = useState({ initializing: true, connectingSocket: false, loadingAssets: false, ready: false });
   const [isTransitionShowed, setisTransitionShowed] = useState(false);
-  const [isInRoom, setisInRoom] = useState(false);
-  const [currentMap, setcurrentMap] = useState("Default")
+  // const [isInRoom, setisInRoom] = useState(false);
+  // const [currentMap, setcurrentMap] = useState("Default")
 
  
   const collisionArrayData = exportArray;
@@ -150,8 +150,8 @@ function GamePage() {
               characterRef.current.height = characterRef.current.selectedCharacter === "Male" ? 27 : 32;
             }
 
-            setisInRoom(false);
-            setcurrentMap("Default");
+            // setisInRoom(false);
+            // setcurrentMap("Default");
             setisTransitionShowed(false);
             startGameLoop();
           } catch (error) {
@@ -219,8 +219,8 @@ function GamePage() {
 
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = 0;
-        setisInRoom(true);
-        setcurrentMap("House");
+        // setisInRoom(true);
+        // setcurrentMap("House");
 
         await Promise.all([RoomMapRef.current.load("/map/Room.png"), roomForeGroundRef.current.load("/map/RoomForeground.png")]);
         initializeRoomCollisions();
