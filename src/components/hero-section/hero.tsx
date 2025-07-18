@@ -2,6 +2,7 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import React from 'react'
+import { Compare } from '../ui/compare'
 
 function Hero() {
 
@@ -26,10 +27,14 @@ function Hero() {
                 <div className='max-w-4xl mx-auto text-center space-y-8'>
 
 
-                    <div className='space-y-4'>
-                        <h1 className='font-bold text-4xl md:text-7xl lg:text-8xl text-white tracking-tighter drop-shadow-2xl'>
+                    <div className='space-y-4 flex items-center justify-center flex-col'>
+                        {/* <h1 className='font-bold text-4xl md:text-7xl lg:text-8xl text-white tracking-tighter drop-shadow-2xl'>
                             METAVERSE
-                        </h1>
+                        </h1> */}
+                        <Compare 
+                        firstText='METAVERSE'
+                        
+                        />
                         <p className='text-md md:text-xl text-gray-200 max-w-2xl mx-auto leading-relaxed'>
                             Step into the future where digital worlds become reality
                         </p>

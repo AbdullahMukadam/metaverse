@@ -90,13 +90,28 @@ export interface LeftUserData {
 export const setupSocketListeners = (
     onUserJoined: (user: UsersData) => void,
     onUserMoved: (data: RemoteUserData) => void,
-    onUserLeft: (data: LeftUserData) => void
+    onUserLeft: (data: LeftUserData) => void,
+    onHouseUserJoined: (user: UsersData) => void,
+    onHouseUserMoved: (data: RemoteUserData) => void,
+    onHouseLeave: (data: { userId: string }) => void
 ): void => {
     const socket = initializeSocket();
 
     socket.on("UserJoined", onUserJoined);
     socket.on("UserMoved", onUserMoved);
     socket.on("UserLeft", onUserLeft);
+    socket.on("HouseUserJoined", onHouseUserJoined);
+    socket.on("HouseUserMoved", onHouseUserMoved);
+    socket.on("LeaveHouse", onHouseLeave)
+};
+
+export const removeSocketListeners = () => {
+    const socket = initializeSocket();
+    socket.off("UserJoined");
+    socket.off("UserMoved");
+    socket.off("UserLeft");
+    socket.off("HouseUserJoined");
+    socket.off("HouseUserMoved");
 };
 
 export const IncomingAudioListener = (
@@ -119,6 +134,68 @@ export const handleUserLeave = (userId: string) => {
         userId
     })
 }
+
+export const sendHouseMovementUpdate = (data: UserMovementData) => {
+    const socket = initializeSocket();
+    socket.emit("UpdateHousePosition", data);
+};
+
+export const handleUserEnteredRoom = (
+    id: string | undefined,
+    name: string | undefined,
+    positions: { X: number; Y: number },
+    selectedCharacter: string
+): Promise<UsersData[] | false> => {
+    return new Promise((resolve) => {
+        const socket = initializeSocket()
+        socket.emit("enteredHouseRoom", {
+            userId: id,
+            UserName: name,
+            positions,
+            selectedCharacter
+        })
+
+        socket.on("HouseRoomJoined", (data: SpaceJoinedResponse) => {
+            resolve(data.UsersArr.length > 0 ? data.UsersArr : false);
+        });
+
+        socket.on("connect_error", () => {
+            resolve(false);
+        });
+    })
+}
+
+export const handleLeaveHouseAndRejoinMain = (
+    userId: string | undefined,
+): Promise<UsersData[] | false> => {
+    return new Promise((resolve) => {
+        if (!userId) {
+            return resolve(false);
+        }
+
+        const socket = getSocket();
+
+        socket.once("SpaceJoined", (data: SpaceJoinedResponse) => {
+            resolve(data.UsersArr || []); 
+        });
+
+        socket.once("connect_error", () => {
+            socket.off("SpaceJoined"); 
+            resolve(false);
+        });
+
+        socket.emit("LeaveHouseMethod", {
+            userId
+        });
+    });
+};
+
+// export const hnadleUserLeaveFromHouse = (userId: string) => {
+//     const socket = getSocket()
+//     socket.emit("LeaveHouseMethod", {
+//         userId
+//     })
+// }
 
 export const getSocket = (): Socket => {
     return initializeSocket();

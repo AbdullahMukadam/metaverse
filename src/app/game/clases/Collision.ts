@@ -1,4 +1,5 @@
 import { Character } from "./Character";
+import { RoomMap } from "./RoomMap";
 
 interface boundaryArray {
     height: number;
@@ -15,52 +16,80 @@ export class Collision {
     public tileWidth: number = 12
     public boundaryArray: boundaryArray[] = []
     private scaleFactor: number = 1.5;
+    public tilevalue: number = 1025;
+    private roomMap?: RoomMap;
 
-
-    constructor(collisionArray: number[][]) {
+    constructor(collisionArray: number[][], tileValue: number, roomMap?: RoomMap) {
         this.collisionArray = collisionArray
-        this.createBoundaryArray()
+        this.tilevalue = tileValue
+        this.roomMap = roomMap;
+
+        this.createBoundaryArray();
     }
 
     createBoundaryArray() {
+        this.boundaryArray = [];
+        this.scaleFactor = this.roomMap ? 3 : 1.5;
+        this.tileHeight = this.roomMap ? 16 : 12;
+        this.tileWidth = this.roomMap ? 16 : 12;
+
         this.collisionArray.forEach((row, i) => {
             row.forEach((tile, j) => {
-                if (tile === 1025) {
+                if (tile === this.tilevalue) {
+                    // Base position calculation
+                    const baseX = j * this.tileWidth;
+                    const baseY = i * this.tileHeight;
+
+                    // const finalX = this.roomMap ? baseX + this.roomMap.offsetX : baseX;
+                    // const finalY = this.roomMap ? baseY + this.roomMap.offsetY : baseY;
+                    //console.log(finalX, finalY)
+
+
+                    let finalX = baseX;
+                    let finalY = baseY;
+
+                    if (this.roomMap) {
+                        finalX += this.roomMap.offsetX / this.scaleFactor;
+                        finalY += this.roomMap.offsetY / this.scaleFactor;
+                    }
+
                     this.boundaryArray.push({
                         height: this.tileHeight * this.scaleFactor,
                         width: this.tileWidth * this.scaleFactor,
                         position: {
-                            x: j * this.tileWidth * this.scaleFactor,
-                            y: i * this.tileHeight * this.scaleFactor
+                            x: finalX * this.scaleFactor,
+                            y: finalY * this.scaleFactor
                         }
-                    })
+                    });
                 }
-            })
-        })
-        this.getBoundaryArray()
+            });
+        });
+
+        this.getBoundaryArray();
     }
 
     getBoundaryArray() {
+        console.log("boundary array for room", this.boundaryArray)
         if (this.boundaryArray.length > 0) {
-            console.log(this.boundaryArray)
+            console.log("Boundary array:", this.boundaryArray);
         }
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.fillStyle = "rgba(255,0,0,0.0)"
-        this.boundaryArray.forEach((arr) => {
-            ctx.fillRect(arr.position.x, arr.position.y, arr.width, arr.height)
-        })
-
+        if (this.roomMap) {
+            console.log("room collisions running")
+        }
+        ctx.fillStyle = "rgba(255,0,0,0)";
+        this.boundaryArray.forEach((boundary) => {
+            ctx.fillRect(boundary.position.x, boundary.position.y, boundary.width, boundary.height);
+        });
     }
 
     detectCollision(character: Character): boolean {
-
         const charLeft = character.worldX;
         const charRight = character.worldX + character.width;
         const charTop = character.worldY;
         const charBottom = character.worldY + character.height;
-
 
         return this.boundaryArray.some(boundary => {
             const boundaryLeft = boundary.position.x;
@@ -68,11 +97,15 @@ export class Collision {
             const boundaryTop = boundary.position.y;
             const boundaryBottom = boundary.position.y + boundary.height;
 
-
             return charLeft < boundaryRight &&
                 charRight > boundaryLeft &&
                 charTop < boundaryBottom &&
                 charBottom > boundaryTop;
         });
+    }
+
+    // Method to update boundaries if room map offset changes
+    updateBoundariesForOffset() {
+        this.createBoundaryArray();
     }
 }
