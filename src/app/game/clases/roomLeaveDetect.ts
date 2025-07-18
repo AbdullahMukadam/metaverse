@@ -62,7 +62,7 @@ export class roomLeaveDetect {
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        ctx.fillStyle = "rgba(255,0,0,0.8)"
+        ctx.fillStyle = "rgba(255,0,0,0)"
         this.boundaryArray.forEach((arr) => {
             ctx.fillRect(arr.position.x, arr.position.y, arr.width, arr.height)
         })

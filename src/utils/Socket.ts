@@ -38,8 +38,7 @@ export interface RemoteUserData extends UserMovementData {
 
 export const initializeSocket = (): Socket => {
     if (!socket) {
-        console.log(process.env.NEXT_PUBLIC_BACKEND_URL as string)
-        socket = io("http://localhost:8000", {
+        socket = io(process.env.NEXT_PUBLIC_BACKEND_URL as string, {
             reconnectionAttempts: 0,
             reconnectionDelay: 1000,
             autoConnect: false
@@ -93,7 +92,8 @@ export const setupSocketListeners = (
     onUserMoved: (data: RemoteUserData) => void,
     onUserLeft: (data: LeftUserData) => void,
     onHouseUserJoined: (user: UsersData) => void,
-    onHouseUserMoved: (data: RemoteUserData) => void
+    onHouseUserMoved: (data: RemoteUserData) => void,
+    onHouseLeave: (data: { userId: string }) => void
 ): void => {
     const socket = initializeSocket();
 
@@ -102,6 +102,7 @@ export const setupSocketListeners = (
     socket.on("UserLeft", onUserLeft);
     socket.on("HouseUserJoined", onHouseUserJoined);
     socket.on("HouseUserMoved", onHouseUserMoved);
+    socket.on("LeaveHouse", onHouseLeave)
 };
 
 export const removeSocketListeners = () => {
@@ -111,7 +112,7 @@ export const removeSocketListeners = () => {
     socket.off("UserLeft");
     socket.off("HouseUserJoined");
     socket.off("HouseUserMoved");
-  };
+};
 
 export const IncomingAudioListener = (
     handleIncomingAudio: (data: IncomingAudioData) => void
@@ -163,6 +164,38 @@ export const handleUserEnteredRoom = (
         });
     })
 }
+
+export const handleLeaveHouseAndRejoinMain = (
+    userId: string | undefined,
+): Promise<UsersData[] | false> => {
+    return new Promise((resolve) => {
+        if (!userId) {
+            return resolve(false);
+        }
+
+        const socket = getSocket();
+
+        socket.once("SpaceJoined", (data: SpaceJoinedResponse) => {
+            resolve(data.UsersArr || []); 
+        });
+
+        socket.once("connect_error", () => {
+            socket.off("SpaceJoined"); 
+            resolve(false);
+        });
+
+        socket.emit("LeaveHouseMethod", {
+            userId
+        });
+    });
+};
+
+// export const hnadleUserLeaveFromHouse = (userId: string) => {
+//     const socket = getSocket()
+//     socket.emit("LeaveHouseMethod", {
+//         userId
+//     })
+// }
 
 export const getSocket = (): Socket => {
     return initializeSocket();
