@@ -22,6 +22,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/VoiceChat/audioprocessor.js"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/components/VoiceChat/audioprocessor.js", "src/scripts/uploadSongstoVercelBlob.mjs"],
   "exclude": ["node_modules"]
 }

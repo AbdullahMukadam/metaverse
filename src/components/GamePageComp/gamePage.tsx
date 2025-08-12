@@ -33,6 +33,9 @@ import { ExportroomCollisionArray } from '@/utils/RoomCollisionsData';
 import { RoomForeground } from '@/app/game/clases/RoomForeground';
 import { ExportroomOutDataArray } from '@/utils/roomOutData';
 import { roomLeaveDetect } from '@/app/game/clases/roomLeaveDetect';
+import { MusicPositionEnteredDetect } from '@/app/game/clases/MusicPositionDetect';
+import { ExportMusicDataArray } from '@/utils/MusicData';
+import MusicPlayer from '../MusicPlayer/MusicPlayer';
 
 function GamePage() {
   // Hooks and Refs
@@ -52,6 +55,7 @@ function GamePage() {
   const RoomCollisionsRef = useRef<Collision | null>(null);
   const roomForeGroundRef = useRef<RoomForeground | null>(null);
   const roomLeaveDetectRef = useRef<roomLeaveDetect | null>(null);
+  const playerReachedToMusicPlaceRef = useRef<MusicPositionEnteredDetect | null>(null);
 
   const selectedCharacter = useAppSelector((state) => state.map.character);
   const userData = useAppSelector((state) => state.auth.userData);
@@ -61,14 +65,16 @@ function GamePage() {
   const [isOpen, setisOpen] = useState(false);
   const [loadingStates, setLoadingStates] = useState({ initializing: true, connectingSocket: false, loadingAssets: false, ready: false });
   const [isTransitionShowed, setisTransitionShowed] = useState(false);
+  const [isUserEnteredMusicZone, setisUserEnteredMusicZone] = useState(false)
   // const [isInRoom, setisInRoom] = useState(false);
   // const [currentMap, setcurrentMap] = useState("Default")
 
- 
+
   const collisionArrayData = exportArray;
   const roomEnterArrayData = exportRoomEnterArray;
   const roomCollisionsDataArray = ExportroomCollisionArray;
   const roomLeaveArrayData = ExportroomOutDataArray;
+  const MusicPlayerArrayData = ExportMusicDataArray;
 
   const updateLoadingState = (updates: Partial<typeof loadingStates>) => {
     setLoadingStates(prev => ({ ...prev, ...updates }));
@@ -119,6 +125,12 @@ function GamePage() {
       characterRef.current.update(inputHandlerRef.current.keys);
 
       if (RoomCollisionsRef.current.detectCollision(characterRef.current)) {
+        characterRef.current.worldX = prevX;
+        characterRef.current.worldY = prevY;
+      }
+
+      if (playerReachedToMusicPlaceRef.current?.detectMusicZone(characterRef.current)) {
+        setisUserEnteredMusicZone(true);
         characterRef.current.worldX = prevX;
         characterRef.current.worldY = prevY;
       }
@@ -174,6 +186,7 @@ function GamePage() {
       characterRef.current.draw(ctx);
       Object.values(remoteUsersHouseRef.current).forEach(user => user.draw(ctx));
       roomForeGroundRef.current?.draw(ctx);
+      playerReachedToMusicPlaceRef.current?.draw(ctx);
 
       animationFrameRef.current = requestAnimationFrame(RoomgameLoop);
     };
@@ -271,6 +284,7 @@ function GamePage() {
     collisionRef.current = new Collision(collisionArrayData, 1025);
     roomEnterDetectRef.current = new roomEnterDetect(roomEnterArrayData);
     roomLeaveDetectRef.current = new roomLeaveDetect(roomLeaveArrayData);
+    playerReachedToMusicPlaceRef.current = new MusicPositionEnteredDetect(MusicPlayerArrayData);
     RoomMapRef.current = new RoomMap(viewPort, canvas);
     foregroundRef.current = new ForegroundObjects(viewPort);
     roomForeGroundRef.current = new RoomForeground(viewPort, RoomMapRef.current);
@@ -350,6 +364,10 @@ function GamePage() {
     return "";
   };
 
+  const handleMusicPlayerClose = () : void => {
+    setisUserEnteredMusicZone(false)
+  }
+
   const isLoading = !loadingStates.ready;
 
   return (
@@ -394,8 +412,18 @@ function GamePage() {
         </div>
       )}
 
+
+      {
+        isUserEnteredMusicZone && (
+          <div className='absolute top-0 p-3 w-full h-full flex items-center justify-center z-40'>
+            <MusicPlayer handleMusicClose={handleMusicPlayerClose} />
+          </div>
+        )
+      }
+
+
       <button
-        className="absolute text-white cursor-pointer z-10 right-4 top-2 p-2 border-black rounded-md bg-red-400 border-[1px] font-michroma"
+        className="absolute text-white cursor-pointer z-50 right-4 top-2 p-2 border-black rounded-md bg-red-400 border-[1px] font-michroma"
         onClick={() => setisOpen((prev) => !prev)}
         disabled={isLoading}
       >
