@@ -1,4 +1,5 @@
 
+import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Michroma } from "next/font/google";
 import "./globals.css";
@@ -38,6 +39,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${sansMichroma.variable} antialiased max-w-[90rem] mx-auto bg-zinc-900`}
         suppressHydrationWarning
       >
+        <Analytics />
         <StoreProvider>
           <CommonLayout>{children}</CommonLayout>
           <Toaster
