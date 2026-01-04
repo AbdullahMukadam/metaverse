@@ -2,6 +2,8 @@
 
 Welcome to the Metaverse project! This is a web-based application that allows users to explore a virtual world, interact with other users, and play a game.
 
+![Product Screenshot](public/gif.gif)
+
 **Note:** This repository contains the frontend of the Metaverse project. The backend repository can be found [here](https://github.com/AbdullahMukadam/Metaverse_Backend).
 
 
