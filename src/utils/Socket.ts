@@ -60,7 +60,8 @@ export const handleSpaceCreation = (
     id: string | undefined,
     name: string | undefined,
     positions: { X: number; Y: number },
-    selectedCharacter: string
+    selectedCharacter: string,
+    roomId: string
 ): Promise<UsersData[] | false> => {
     return new Promise((resolve) => {
         const socket = initializeSocket();
@@ -69,7 +70,8 @@ export const handleSpaceCreation = (
             userId: id,
             UserName: name,
             positions,
-            selectedCharacter
+            selectedCharacter,
+            roomId
         });
 
         socket.on("SpaceJoined", (data: SpaceJoinedResponse) => {
@@ -144,7 +146,8 @@ export const handleUserEnteredRoom = (
     id: string | undefined,
     name: string | undefined,
     positions: { X: number; Y: number },
-    selectedCharacter: string
+    selectedCharacter: string,
+    roomId: string
 ): Promise<UsersData[] | false> => {
     return new Promise((resolve) => {
         const socket = initializeSocket()
@@ -152,7 +155,8 @@ export const handleUserEnteredRoom = (
             userId: id,
             UserName: name,
             positions,
-            selectedCharacter
+            selectedCharacter,
+            roomId
         })
 
         socket.on("HouseRoomJoined", (data: SpaceJoinedResponse) => {
@@ -167,6 +171,7 @@ export const handleUserEnteredRoom = (
 
 export const handleLeaveHouseAndRejoinMain = (
     userId: string | undefined,
+    roomId: string
 ): Promise<UsersData[] | false> => {
     return new Promise((resolve) => {
         if (!userId) {
@@ -185,7 +190,8 @@ export const handleLeaveHouseAndRejoinMain = (
         });
 
         socket.emit("LeaveHouseMethod", {
-            userId
+            userId,
+            roomId
         });
     });
 };
