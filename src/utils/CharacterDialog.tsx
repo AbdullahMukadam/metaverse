@@ -129,7 +129,7 @@ export function CharacterDialog({ isDialogOpen, setIsDialogOpen }: DialogParams)
                                     placeholder="Enter room ID..."
                                     value={roomId}
                                     onChange={(e) => setRoomId(e.target.value)}
-                                    className="bg-white"
+                                    className="bg-transparent border-2 border-black outline-none ring-0 "
                                 />
                             </div>
                             <div className="flex items-center justify-center">
