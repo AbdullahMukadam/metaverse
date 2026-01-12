@@ -58,6 +58,7 @@ function GamePage() {
   const playerReachedToMusicPlaceRef = useRef<MusicPositionEnteredDetect | null>(null);
 
   const selectedCharacter = useAppSelector((state) => state.map.character);
+  const roomId = useAppSelector((state) => state.map.roomId);
   const userData = useAppSelector((state) => state.auth.userData);
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -140,14 +141,14 @@ function GamePage() {
         animationFrameRef.current = 0;
         setisTransitionShowed(true);
 
-        const transitionToMainWorld = async () => {
-          try {
-            if (!userData?.id) throw new Error("User ID is missing.");
-            const mainWorldUsers = await handleLeaveHouseAndRejoinMain(userData.id);
+          const transitionToMainWorld = async () => {
+            try {
+              if (!userData?.id) throw new Error("User ID is missing.");
+              const mainWorldUsers = await handleLeaveHouseAndRejoinMain(userData.id, roomId);
 
-            if (mainWorldUsers === false) {
-              throw new Error("Server failed to process the transition.");
-            }
+              if (mainWorldUsers === false) {
+                throw new Error("Server failed to process the transition.");
+              }
 
             remoteUsersHouseRef.current = {};
             remoteUsersRef.current = {};
@@ -216,7 +217,7 @@ function GamePage() {
       if (roomEnterDetectRef.current.detectRoomEnterZone(characterRef.current)) {
         setisTransitionShowed(true);
         const RoomPositions = { X: 700, Y: 500 };
-        const response = await handleUserEnteredRoom(userData?.id, userData?.name, RoomPositions, selectedCharacter);
+        const response = await handleUserEnteredRoom(userData?.id, userData?.name, RoomPositions, selectedCharacter, roomId);
         if (Array.isArray(response)) {
           remoteUsersRef.current = {};
           await initRemoteUsersHouse(response);
@@ -311,7 +312,7 @@ function GamePage() {
       try {
         updateLoadingState({ initializing: false, connectingSocket: true });
         ctx.fillText('Connecting to server...', canvas.width / 2, canvas.height / 2);
-        const response = await handleSpaceCreation(userData?.id, userData?.name, positions, selectedCharacter);
+        const response = await handleSpaceCreation(userData?.id, userData?.name, positions, selectedCharacter, roomId);
         if (Array.isArray(response)) {
           await initRemoteUsers(response);
         }
@@ -341,7 +342,7 @@ function GamePage() {
         socketRef.current.off("HouseUserMoved");
       }
     };
-  }, [selectedCharacter, userData?.id, userData?.name]);
+  }, [selectedCharacter, userData?.id, userData?.name, roomId]);
 
   const handleLeaveWorld = () => {
     if (!socketRef.current) return;
