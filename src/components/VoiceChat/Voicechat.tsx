@@ -216,13 +216,13 @@ function Voicechat() {
     },[])
 
     return (
-        <div className='w-full p-4 z-10 font-michroma bg-black/80 rounded-xl shadow-lg'>
+        <div className='w-full p-4 z-10 font-michroma text-black'>
             <div className='flex flex-col items-center space-y-3'>
 
                 <button
                     onClick={isSending ? stopAudioSend : handleVoiceInit}
                     disabled={!isProcessorLoaded}
-                    className={`w-full md:w-60 px-4 py-3 cursor-pointer text-center text-sm font-semibold rounded-lg transition-all duration-200
+                    className={`w-full p-2 cursor-pointer text-center text-sm font-semibold transition-all duration-200 border-2 border-black
               ${!isProcessorLoaded ? 'bg-gray-400 cursor-not-allowed' :
                             isSending ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} 
               text-white shadow-md`}
@@ -231,12 +231,12 @@ function Voicechat() {
                         isSending ? 'Stop Voice Chat' : 'Start Voice Chat'}
                 </button>
 
-                <p className='text-xs text-white animate-pulse'>
+                <p className='text-xs text-black animate-pulse'>
                     {isSending ? ' Microphone is live' : 'Click to start voice chat'}
                 </p>
 
                 {connectedUsers.size > 0 && (
-                    <p className='text-xs text-gray-300'>
+                    <p className='text-xs text-gray-800'>
                         {connectedUsers.size} user(s) speaking
                     </p>
                 )}
