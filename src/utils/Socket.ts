@@ -36,6 +36,22 @@ export interface RemoteUserData extends UserMovementData {
     selectedCharacter: string;
 }
 
+export interface ChatMessage {
+    id: string;
+    roomId: string;
+    userId: string;
+    userName: string;
+    message: string;
+    timestamp: number;
+    userImage?: string | null;
+}
+
+export interface TypingData {
+    userId: string;
+    userName: string;
+    isTyping: boolean;
+}
+
 export const initializeSocket = (): Socket => {
     if (!socket) {
         socket = io(process.env.NEXT_PUBLIC_BACKEND_URL as string, {
@@ -205,4 +221,58 @@ export const handleLeaveHouseAndRejoinMain = (
 
 export const getSocket = (): Socket => {
     return initializeSocket();
+};
+
+
+export const sendChatMessage = (
+    roomId: string,
+    userId: string,
+    userName: string,
+    message: string,
+    userImage?: string
+): void => {
+    const socket = getSocket();
+    socket.emit("sendMessage", {
+        roomId,
+        userId,
+        userName,
+        message,
+        userImage
+    });
+};
+
+export const sendTypingStatus = (
+    roomId: string,
+    userId: string,
+    userName: string,
+    isTyping: boolean
+): void => {
+    const socket = getSocket();
+    socket.emit("typingStatus", {
+        roomId,
+        userId,
+        userName,
+        isTyping
+    });
+};
+
+export const setupChatListeners = (
+    onNewMessage: (message: ChatMessage) => void,
+    onUserTyping: (data: TypingData) => void,
+    onChatError?: (error: { message: string }) => void
+): void => {
+    const socket = getSocket();
+    
+    socket.on("newMessage", onNewMessage);
+    socket.on("userTyping", onUserTyping);
+    if (onChatError) {
+        socket.on("chatError", onChatError);
+    }
+};
+
+export const removeChatListeners = (): void => {
+    const socket = getSocket();
+    socket.off("newMessage");
+    socket.off("userTyping");
+    socket.off("chatError");
 };

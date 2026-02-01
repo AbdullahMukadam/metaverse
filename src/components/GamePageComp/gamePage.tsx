@@ -36,6 +36,9 @@ import { roomLeaveDetect } from '@/app/game/clases/roomLeaveDetect';
 import { MusicPositionEnteredDetect } from '@/app/game/clases/MusicPositionDetect';
 import { ExportMusicDataArray } from '@/utils/MusicData';
 import MusicPlayer from '../MusicPlayer/MusicPlayer';
+import ChatPanel from '../Chat/ChatPanel';
+
+import { Copy } from 'lucide-react';
 
 function GamePage() {
   // Hooks and Refs
@@ -372,13 +375,13 @@ function GamePage() {
   const isLoading = !loadingStates.ready;
 
   return (
-    <div className='relative w-full h-screen bg-gray-900'>
+    <div className='relative w-full h-screen bg-[#67E6D2]'>
       <div className='w-full h-full flex items-center justify-center'>
         {isTransitionShowed && (
           <div className='absolute inset-0 bg-black/50 flex items-center justify-center z-50'>
-            <div className='bg-gray-800 p-6 rounded-lg shadow-lg text-center'>
-              <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4'></div>
-              <h1 className='text-white font-bold font-michroma text-lg'>
+            <div className='bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2] p-6 shadow-lg text-center'>
+              <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4'></div>
+              <h1 className='text-black font-bold font-michroma text-lg'>
                 Hang On a little
               </h1>
               <div className='mt-2 text-gray-400 text-sm'>
@@ -389,7 +392,7 @@ function GamePage() {
         )}
         <canvas
           ref={canvasRef}
-          className='border border-black shadow-lg'
+          className=''
           style={{
             maxWidth: '100%',
             maxHeight: '100%',
@@ -412,6 +415,7 @@ function GamePage() {
           </div>
         </div>
       )}
+     
 
 
       {
@@ -424,7 +428,7 @@ function GamePage() {
 
 
       <button
-        className="absolute text-white cursor-pointer z-50 right-4 top-2 p-2 border-black rounded-md bg-red-400 border-[1px] font-michroma"
+        className="absolute text-black cursor-pointer z-50 right-4 top-2 px-4 py-2 border-2 border-black bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2] font-michroma"
         onClick={() => setisOpen((prev) => !prev)}
         disabled={isLoading}
       >
@@ -432,21 +436,50 @@ function GamePage() {
       </button>
 
       <div
-        className={`absolute z-10 right-4 top-14 p-3 bg-black/70 rounded-xl shadow-lg flex flex-col items-end space-y-3 font-michroma
-          transition-all duration-300 ease-in-out transform
+        className={`absolute z-10 right-4 top-16 p-4 bg-white/95 backdrop-blur-sm border-2 border-black flex flex-col gap-4 font-michroma w-64
+          transition-all duration-300 ease-in-out transform origin-top-right
           ${isOpen && !isLoading ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}
         `}
       >
-        <button
-          onClick={handleLeaveWorld}
-          disabled={isLoading}
-          className="px-4 py-2 bg-red-600 cursor-pointer text-white text-sm font-semibold border border-red-700 rounded-lg 
-          hover:bg-red-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Leave World
-        </button>
-        <Voicechat />
+        {roomId && (
+          <div className="flex flex-col gap-1 pb-3 border-b-2 border-black">
+            <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Current Room ID</span>
+            <div className="flex items-center gap-2 bg-gray-100 p-2 border-2 border-gray-300 group hover:border-black transition-colors cursor-pointer"
+                 onClick={() => {
+                   navigator.clipboard.writeText(roomId);
+                   toast.success("Room ID copied!");
+                 }}
+                 title="Click to copy"
+            >
+              <code className="text-sm font-bold flex-1 truncate">{roomId}</code>
+              <Copy className="w-4 h-4 text-gray-500 group-hover:text-black" />
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Actions</span>
+          <Voicechat />
+          <button
+            onClick={handleLeaveWorld}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold border-2 border-black 
+            transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Leave World
+          </button>
+        </div>
       </div>
+
+      {/* Chat Panel - Only show when game is ready */}
+      {!isLoading && userData && (
+        <ChatPanel 
+          roomId={roomId}
+          userId={userData.id}
+          userName={userData.name}
+          userImage={userData.image || undefined}
+        />
+      )}
     </div>
   );
 }

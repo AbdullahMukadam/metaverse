@@ -41,7 +41,7 @@ function DashboardComp({ userData }: DashboardCompProps) {
 
     return (
         <div className='w-full h-full flex justify-center font-michroma'>
-            <div className='w-[95%] h-[80%] md:w-[50%] sm:h-[50%] flex flex-col gap-2 p-6 border-2 rounded-2xl border-black bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2]'>
+            <div className='w-[95%] h-fit md:w-[50%] sm:h-[50%] flex flex-col gap-2 p-6 border-2 rounded-2xl border-black bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2]'>
                 <div className='w-full h-fit p-2'>
                     <li>You may need to wait for some time, till we ready the metaverse. </li>
                     <li>Please keep pateinace.</li>

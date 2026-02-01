@@ -1,12 +1,14 @@
 import { configureStore } from '@reduxjs/toolkit'
 import authReducer from "./auth/authSlice"
 import mapReducer from "./map/mapSlice"
+import chatReducer from "./chat/chatSlice"
 
 export const makeStore = () => {
     return configureStore({
         reducer: {
             auth: authReducer,
-            map: mapReducer
+            map: mapReducer,
+            chat: chatReducer
         },
     })
 }

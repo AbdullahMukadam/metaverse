@@ -11,10 +11,8 @@ import {
 import {
     Choicebox,
     ChoiceboxItem,
-    ChoiceboxItemContent,
     ChoiceboxItemDescription,
     ChoiceboxItemHeader,
-    ChoiceboxItemIndicator,
     ChoiceboxItemTitle,
 } from '@/components/ui/kibo-ui/choicebox';
 import { Input } from "@/components/ui/input";
@@ -43,7 +41,7 @@ export function CharacterDialog({ isDialogOpen, setIsDialogOpen }: DialogParams)
     const [selectedCharacter, setSelectedCharacter] = useState("Male");
     const dispatch = useAppDispatch();
     const router = useRouter();
-    
+
     const options: SelectOptions[] = [
         {
             id: '1',
@@ -67,18 +65,18 @@ export function CharacterDialog({ isDialogOpen, setIsDialogOpen }: DialogParams)
 
     const handleStepOne = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        
+
         if (!roomId.trim()) {
             toast.error("Please enter or generate a Room ID");
             return;
         }
-        
+
         setStep(2);
     };
 
     const handleFinalSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        
+
         if (deviceWidth < 700) {
             toast.error("Please use a laptop or a desktop computer");
             setIsDialogOpen(false);
@@ -89,7 +87,7 @@ export function CharacterDialog({ isDialogOpen, setIsDialogOpen }: DialogParams)
         console.log("Selected character:", selectedCharacter, "Room ID:", roomId);
         router.push("/game");
         setIsDialogOpen(false);
-        
+
         // Reset state for next time
         setStep(1);
         setRoomId("");
@@ -174,36 +172,37 @@ export function CharacterDialog({ isDialogOpen, setIsDialogOpen }: DialogParams)
                                 <span className="text-xs">{roomId}</span>
                             </div>
                         </div>
-                        <div className="w-full p-2 flex items-center justify-center bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2]">
+                        <div className="w-full bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2]">
                             <Choicebox
                                 value={selectedCharacter}
                                 onValueChange={setSelectedCharacter}
+                                className="w-full grid"
                                 style={{
                                     gridTemplateColumns: `repeat(${options.length}, 1fr)`,
+                                    gap: '1rem',
                                 }}
                             >
                                 {options.map((option) => (
-                                    <ChoiceboxItem value={option.label} key={option.id}>
-                                        <ChoiceboxItemHeader>
-                                            <ChoiceboxItemTitle>{option.label}</ChoiceboxItemTitle>
-                                            <ChoiceboxItemDescription className="w-full flex items-center justify-center">
-                                                <Image
-                                                    src={option.url}
-                                                    height={350}
-                                                    width={200}
-                                                    alt={option.label}
-                                                    className="object-contain"
-                                                />
+                                    <ChoiceboxItem value={option.label} key={option.id} className="flex flex-col items-center justify-center">
+                                        <ChoiceboxItemHeader className="w-full">
+                                            <ChoiceboxItemTitle className="text-center mb-2">{option.label}</ChoiceboxItemTitle>
+                                            <ChoiceboxItemDescription className="w-full">
+                                                <div className="relative w-full aspect-square border border-black bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2]">
+                                                    <Image
+                                                        src={option.url}
+                                                        fill
+                                                        alt={option.label}
+                                                        className="object-contain"
+                                                        sizes="(max-width: 768px) 100vw, 50vw"
+                                                    />
+                                                </div>
                                             </ChoiceboxItemDescription>
                                         </ChoiceboxItemHeader>
-                                        <ChoiceboxItemContent>
-                                            <ChoiceboxItemIndicator />
-                                        </ChoiceboxItemContent>
                                     </ChoiceboxItem>
                                 ))}
                             </Choicebox>
                         </div>
-                        <DialogFooter>
+                        <DialogFooter className="mt-2">
                             <button
                                 className="p-2 bg-gray-300 border-2 border-black mr-2 cursor-pointer hover:bg-gray-400 transition-colors"
                                 type="button"
