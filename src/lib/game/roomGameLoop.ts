@@ -99,3 +99,6 @@ export function createRoomGameLoop({
     animationFrameRef.current = requestAnimationFrame(roomGameLoop);
   };
 }
+
+// Failed to load resource: the server responded with a status of 404 ()Understand this error
+// femaleTopNew.png:1  Failed to load resource: the server responded with a status of 404 ()

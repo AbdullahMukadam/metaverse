@@ -97,7 +97,7 @@ export class RemoteUser {
                 this.sprites.left.src = `${basePath}/playerLeft.png`;
                 this.sprites.right.src = `${basePath}/playerRight.png`;
             } else {
-                this.sprites.up.src = `${basePath}/femaleTopNew.png`;
+                this.sprites.up.src = `${basePath}/femaleTopnew.png`;
                 this.sprites.down.src = `${basePath}/femaleBottomnew.png`;
                 this.sprites.left.src = `${basePath}/femaleLeftnew.png`;
                 this.sprites.right.src = `${basePath}/femaleRightnew.png`;
