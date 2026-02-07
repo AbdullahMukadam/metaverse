@@ -28,7 +28,7 @@ export class ForegroundObjects {
         })
     }
 
-    draw(ctx: CanvasRenderingContext2D, cameraX: number = 0, cameraY: number = 0) {
+    draw(ctx: CanvasRenderingContext2D) {
         if (!this.isLoaded) return
 
         // Draw foreground at origin (canvas is already translated)

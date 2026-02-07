@@ -1,14 +1,14 @@
 import React from 'react';
 import { Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import Voicechat from '../../VoiceChat/Voicechat';
+import { UserData } from '@/lib/auth/authSlice';
 
 interface GameUIProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   isLoading: boolean;
   roomId: string | null;
-  userData: any;
+  userData: UserData | null
   onLeaveWorld: () => void;
 }
 
@@ -17,7 +17,6 @@ export const GameUI: React.FC<GameUIProps> = ({
   setIsOpen,
   isLoading,
   roomId,
-  userData,
   onLeaveWorld,
 }) => {
   return (
