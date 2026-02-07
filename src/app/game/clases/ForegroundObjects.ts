@@ -5,6 +5,7 @@ export class ForegroundObjects {
     public isLoaded: boolean = false
     public screenWidth: number = 0
     public screenHeight: number = 0
+    public scale: number = 3; // 3x zoom
     
 
     constructor(viewPort: { width: number, height: number }) {
@@ -27,15 +28,10 @@ export class ForegroundObjects {
         })
     }
 
-    draw(ctx: CanvasRenderingContext2D) {
+    draw(ctx: CanvasRenderingContext2D, cameraX: number = 0, cameraY: number = 0) {
         if (!this.isLoaded) return
 
-        ctx.drawImage(
-            this.image,
-            0,
-            0,
-            this.screenWidth,
-            this.screenHeight
-        )
+        // Draw foreground at origin (canvas is already translated)
+        ctx.drawImage(this.image, 0, 0);
     }
 }

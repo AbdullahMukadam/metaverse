@@ -14,7 +14,7 @@ export class roomEnterDetect {
     public tileHeight: number = 12
     public tileWidth: number = 12
     public boundaryArray: boundaryArray[] = []
-    private scaleFactor: number = 1.5;
+    private scaleFactor: number = 1; // 1:1 scale
     public isUserEnteredZone: boolean = false
 
 

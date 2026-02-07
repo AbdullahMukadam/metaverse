@@ -7,6 +7,7 @@ export class GameMap {
     public offsetY: number = 0;
     public screenWidth: number = 0
     public screenHeight: number = 0
+    public scale: number = 3; // 3x zoom (requested update)
 
     constructor(canvas: HTMLCanvasElement, viewPort: { width: number, height: number }) {
         this.canvas = canvas;
@@ -30,19 +31,19 @@ export class GameMap {
         })
     }
 
-    draw() {
+    draw(playerX: number = 0, playerY: number = 0) {
         if (!this.isLoaded) return;
 
+        // Calculate camera position to center player on screen
+        const cameraX = playerX - (this.screenWidth / 2) / this.scale;
+        const cameraY = playerY - (this.screenHeight / 2) / this.scale;
 
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+        // Store camera offset for other objects to use
+        this.offsetX = cameraX;
+        this.offsetY = cameraY;
 
-        this.ctx.drawImage(
-            this.image,
-            this.offsetX,
-            this.offsetY,
-            this.screenWidth,
-            this.screenHeight
-        )
+        // Draw the map at origin (canvas is already translated)
+        this.ctx.drawImage(this.image, 0, 0);
     }
 
 

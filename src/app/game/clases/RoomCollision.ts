@@ -10,81 +10,71 @@ interface boundaryArray {
     }
 }
 
-export class Collision {
+// Dedicated collision class for Room Map (1:1 coordinates, no zoom)
+export class RoomCollision {
     public collisionArray: number[][] = []
-    public tileHeight: number = 12
-    public tileWidth: number = 12
+    public tileHeight: number = 16  // Room tiles are 16px
+    public tileWidth: number = 16
     public boundaryArray: boundaryArray[] = []
-    private scaleFactor: number = 1.5;
-    public tilevalue: number = 1025;
+    public tilevalue: number = 555;  // Room uses tile value 555
+    private scaleFactor: number = 3;
     private roomMap?: RoomMap;
 
-    constructor(collisionArray: number[][], tileValue: number, roomMap?: RoomMap) {
+
+    constructor(collisionArray: number[][], tileValue: number = 555, roomMap: RoomMap) {
         this.collisionArray = collisionArray
         this.tilevalue = tileValue
-        this.roomMap = roomMap;
-
+        this.roomMap = roomMap
         this.createBoundaryArray();
     }
 
     createBoundaryArray() {
         this.boundaryArray = [];
-        
-        // Base tile size - this matches the actual map PNG dimensions
-        // Main world map is 840x480 = 70 tiles × 12px × 40 tiles × 12px
-        // Room map uses 16px tiles
-        const baseTileWidth = this.roomMap ? 16 : 12;
-        const baseTileHeight = this.roomMap ? 16 : 12;
-        
-        // NO SCALING - the map PNG is at actual size
-        // The 2.5x zoom is applied at canvas rendering, not here
-        this.tileWidth = baseTileWidth;
-        this.tileHeight = baseTileHeight;
-        
+
+        // Room uses 16px tiles at 1:1 scale (no zoom)
+        this.tileWidth = 16;
+        this.tileHeight = 16;
+
         this.collisionArray.forEach((row, i) => {
             row.forEach((tile, j) => {
                 if (tile === this.tilevalue) {
-                    // Position in world coordinates (matches map PNG pixels)
+                    // Position in pure world coordinates (no scaling needed)
                     const x = j * this.tileWidth;
                     const y = i * this.tileHeight;
+                    let finalX = x;
+                    let finalY = y;
+
+                   if(this.roomMap){
+                    finalX += this.roomMap.offsetX / this.scaleFactor;
+                    finalY += this.roomMap.offsetY / this.scaleFactor;
+                   }
 
                     this.boundaryArray.push({
-                        width: this.tileWidth,
-                        height: this.tileHeight,
+                        height: this.tileHeight * this.scaleFactor,
+                        width: this.tileWidth * this.scaleFactor,
                         position: {
-                            x: x,
-                            y: y
+                            x: finalX * this.scaleFactor,
+                            y: finalY * this.scaleFactor
                         }
                     });
                 }
             });
         });
 
-        this.getBoundaryArray();
-    }
-
-    getBoundaryArray() {
-        // Collision boundaries created successfully
+        console.log(`RoomCollision: Created ${this.boundaryArray.length} boundaries`);
     }
 
     draw(ctx: CanvasRenderingContext2D) {
-        // Collision boundaries are invisible - they're only for detection
-        // Uncomment below to debug collision positions
-        
-        ctx.fillStyle = "rgba(255,0,0,0.3)";
-        ctx.strokeStyle = "rgba(255,0,0,0.8)";
-        ctx.lineWidth = 2;
+        // Draw collision boundaries for debugging (bright red boxes with crosshairs)
+
+        ctx.fillStyle = "rgba(255,0,0,0)";
         this.boundaryArray.forEach((boundary) => {
             ctx.fillRect(boundary.position.x, boundary.position.y, boundary.width, boundary.height);
-            ctx.strokeRect(boundary.position.x, boundary.position.y, boundary.width, boundary.height);
         });
-        
     }
 
-    private hasLoggedOnce: boolean = false;
-
     detectCollision(character: Character): boolean {
-        // Character is drawn centered, so collision box should be centered too
+        // Character collision box (centered)
         const charLeft = character.worldX - character.width / 2;
         const charRight = character.worldX + character.width / 2;
         const charTop = character.worldY - character.height / 2;
@@ -101,10 +91,5 @@ export class Collision {
                 charTop < boundaryBottom &&
                 charBottom > boundaryTop;
         });
-    }
-
-    // Method to update boundaries if room map offset changes
-    updateBoundariesForOffset() {
-        this.createBoundaryArray();
     }
 }
