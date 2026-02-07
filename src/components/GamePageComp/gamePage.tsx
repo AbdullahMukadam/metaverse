@@ -1,335 +1,262 @@
 "use client";
-import { Character } from '@/app/game/clases/Character';
-import { Collision } from '@/app/game/clases/Collision';
-import { ForegroundObjects } from '@/app/game/clases/ForegroundObjects';
-import { GameMap } from '@/app/game/clases/GameMap';
-import { InputHandler } from '@/app/game/clases/InputHandler';
-import { RemoteUser } from '@/app/game/clases/RemoteUser';
+
+import { useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { useAppDispatch, useAppSelector } from '@/lib/hooks';
 import { mapDismantleState } from '@/lib/map/mapSlice';
-import { exportArray } from '@/utils/collisionsData';
+import { useGameRefs } from '@/hooks/game/useGameRefs';
+import { useGameState } from '@/hooks/game/useGameState';
+import { useCharacterManager } from '@/hooks/game/useCharacterManager';
+import { useCollisionManager } from '@/hooks/game/useCollisionManager';
+import { useSocketHandlers } from '@/hooks/game/useSocketHandlers';
+import { createMainGameLoop } from '@/lib/game/mainGameLoop';
+import { createRoomGameLoop } from '@/lib/game/roomGameLoop';
 import {
   getSocket,
   handleSpaceCreation,
   handleUserEnteredRoom,
   handleUserLeave,
   handleLeaveHouseAndRejoinMain,
-  LeftUserData,
-  RemoteUserData,
-  sendHouseMovementUpdate,
-  sendMovementUpdate,
   setupSocketListeners,
-  UsersData
 } from '@/utils/Socket';
-import { useRouter } from 'next/navigation';
-import React, { useEffect, useRef, useState } from 'react';
-import { Socket } from 'socket.io-client';
-import { toast } from 'sonner';
-import Voicechat from '../VoiceChat/Voicechat';
-import { exportRoomEnterArray } from '@/utils/roomEnterData';
-import { roomEnterDetect } from '@/app/game/clases/roomEnterDetect';
-import { RoomMap } from '@/app/game/clases/RoomMap';
-import { ExportroomCollisionArray } from '@/utils/RoomCollisionsData';
-import { RoomForeground } from '@/app/game/clases/RoomForeground';
-import { ExportroomOutDataArray } from '@/utils/roomOutData';
-import { roomLeaveDetect } from '@/app/game/clases/roomLeaveDetect';
-import { MusicPositionEnteredDetect } from '@/app/game/clases/MusicPositionDetect';
-import { ExportMusicDataArray } from '@/utils/MusicData';
 import MusicPlayer from '../MusicPlayer/MusicPlayer';
 import ChatPanel from '../Chat/ChatPanel';
+import { GameCanvas } from './components/GameCanvas';
+import { GameUI } from './components/GameUI';
 
-import { Copy } from 'lucide-react';
 
-function GamePage() {
-  // Hooks and Refs
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const gameMapRef = useRef<GameMap | null>(null);
-  const characterRef = useRef<Character | null>(null);
-  const inputHandlerRef = useRef<InputHandler | null>(null);
-  const collisionRef = useRef<Collision | null>(null);
-  const foregroundRef = useRef<ForegroundObjects | null>(null);
-  const remoteUsersRef = useRef<Record<string, RemoteUser>>({});
-  const remoteUsersHouseRef = useRef<Record<string, RemoteUser>>({})
-  const animationFrameRef = useRef<number>(0);
-  const socketRef = useRef<Socket | null>(null);
-  const lastNetworkUpdate = useRef<number>(0);
-  const roomEnterDetectRef = useRef<roomEnterDetect | null>(null);
-  const RoomMapRef = useRef<RoomMap | null>(null);
-  const RoomCollisionsRef = useRef<Collision | null>(null);
-  const roomForeGroundRef = useRef<RoomForeground | null>(null);
-  const roomLeaveDetectRef = useRef<roomLeaveDetect | null>(null);
-  const playerReachedToMusicPlaceRef = useRef<MusicPositionEnteredDetect | null>(null);
-
+export default function GamePage() {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  
+  // Redux state
   const selectedCharacter = useAppSelector((state) => state.map.character);
   const roomId = useAppSelector((state) => state.map.roomId);
   const userData = useAppSelector((state) => state.auth.userData);
-  const dispatch = useAppDispatch();
-  const router = useRouter();
 
-  const [isOpen, setisOpen] = useState(false);
-  const [loadingStates, setLoadingStates] = useState({ initializing: true, connectingSocket: false, loadingAssets: false, ready: false });
-  const [isTransitionShowed, setisTransitionShowed] = useState(false);
-  const [isUserEnteredMusicZone, setisUserEnteredMusicZone] = useState(false)
-  // const [isInRoom, setisInRoom] = useState(false);
-  // const [currentMap, setcurrentMap] = useState("Default")
+  // Game refs
+  const refs = useGameRefs();
+  const {
+    canvasRef,
+    gameMapRef,
+    RoomMapRef,
+    characterRef,
+    inputHandlerRef,
+    collisionRef,
+    RoomCollisionsRef,
+    foregroundRef,
+    roomForeGroundRef,
+    remoteUsersRef,
+    remoteUsersHouseRef,
+    animationFrameRef,
+    socketRef,
+    lastNetworkUpdate,
+    roomEnterDetectRef,
+    roomLeaveDetectRef,
+    playerReachedToMusicPlaceRef,
+  } = refs;
 
+  // Game state
+  const {
+    isOpen,
+    setIsOpen,
+    isTransitionShowed,
+    setIsTransitionShowed,
+    isUserEnteredMusicZone,
+    setIsUserEnteredMusicZone,
+    updateLoadingState,
+    getLoadingMessage,
+    isLoading,
+  } = useGameState();
 
-  const collisionArrayData = exportArray;
-  const roomEnterArrayData = exportRoomEnterArray;
-  const roomCollisionsDataArray = ExportroomCollisionArray;
-  const roomLeaveArrayData = ExportroomOutDataArray;
-  const MusicPlayerArrayData = ExportMusicDataArray;
+  // Character management
+  const {
+    initRemoteUsers,
+    initRemoteUsersHouse,
+    resetCharacterPosition,
+  } = useCharacterManager(characterRef, remoteUsersRef, remoteUsersHouseRef);
 
-  const updateLoadingState = (updates: Partial<typeof loadingStates>) => {
-    setLoadingStates(prev => ({ ...prev, ...updates }));
-  };
+  // Collision management
+  const { initializeMainCollisions, initializeRoomCollisions } = useCollisionManager(
+    collisionRef,
+    RoomCollisionsRef,
+    RoomMapRef
+  );
 
-  const initializeRoomCollisions = () => {
-    if (RoomMapRef.current) {
-      const tileValue = 555;
-      RoomCollisionsRef.current = new Collision(roomCollisionsDataArray, tileValue, RoomMapRef.current);
-      RoomCollisionsRef.current.tileHeight = 16;
-      RoomCollisionsRef.current.tileWidth = 16;
-    }
-  };
+  // Socket handlers
+  const socketHandlers = useSocketHandlers(remoteUsersRef, remoteUsersHouseRef, userData?.id);
 
-  const initRemoteUsers = async (users: UsersData[]) => {
-    for (const user of users) {
-      if (user.userId !== userData?.id) {
-        const remoteUser = new RemoteUser(user.positions.X, user.positions.Y, user.selectedCharacter, user.userId, user.UserName);
-        remoteUsersRef.current[user.userId] = remoteUser;
-        await remoteUser.load();
-      }
-    }
-  };
-
-  const initRemoteUsersHouse = async (users: UsersData[]) => {
-    for (const user of users) {
-      if (user.userId !== userData?.id) {
-        const CharacterDimensions = { width: user.selectedCharacter === "Male" ? 32 : 42, heigth: user.selectedCharacter === 'Male' ? 40 : 48 };
-        const remoteUser = new RemoteUser(user.positions.X, user.positions.Y, user.selectedCharacter, user.userId, user.UserName, CharacterDimensions.width, CharacterDimensions.heigth);
-        remoteUsersHouseRef.current[user.userId] = remoteUser;
-        await remoteUser.load();
-      }
-    }
-  };
-
-  const startRoomGameLoop = () => {
-    const RoomgameLoop = () => {
-      if (!canvasRef.current) return;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d")!;
-      if (!ctx || !characterRef.current || !inputHandlerRef.current || !RoomMapRef.current || !RoomCollisionsRef.current || !roomForeGroundRef.current || !roomLeaveDetectRef.current) return;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const prevX = characterRef.current.worldX;
-      const prevY = characterRef.current.worldY;
-
-      characterRef.current.update(inputHandlerRef.current.keys);
-
-      if (RoomCollisionsRef.current.detectCollision(characterRef.current)) {
-        characterRef.current.worldX = prevX;
-        characterRef.current.worldY = prevY;
-      }
-
-      if (playerReachedToMusicPlaceRef.current?.detectMusicZone(characterRef.current)) {
-        setisUserEnteredMusicZone(true);
-        characterRef.current.worldX = prevX;
-        characterRef.current.worldY = prevY;
-      }
-
-      if (roomLeaveDetectRef.current.detectRoomLeaveZone(characterRef.current)) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = 0;
-        setisTransitionShowed(true);
-
-          const transitionToMainWorld = async () => {
-            try {
-              if (!userData?.id) throw new Error("User ID is missing.");
-              const mainWorldUsers = await handleLeaveHouseAndRejoinMain(userData.id, roomId);
-
-              if (mainWorldUsers === false) {
-                throw new Error("Server failed to process the transition.");
-              }
-
-            remoteUsersHouseRef.current = {};
-            remoteUsersRef.current = {};
-            await initRemoteUsers(mainWorldUsers);
-
-            if (characterRef.current) {
-              const mainWorldEntryPositions = { X: 570, Y: 325 };
-              characterRef.current.worldX = mainWorldEntryPositions.X;
-              characterRef.current.worldY = mainWorldEntryPositions.Y;
-              characterRef.current.speed = 1;
-              characterRef.current.width = characterRef.current.selectedCharacter === "Male" ? 23 : 27;
-              characterRef.current.height = characterRef.current.selectedCharacter === "Male" ? 27 : 32;
-            }
-
-            // setisInRoom(false);
-            // setcurrentMap("Default");
-            setisTransitionShowed(false);
-            startGameLoop();
-          } catch (error) {
-            console.error("Failed to transition back to main world:", error);
-            toast.error("Could not return to the main world. Please refresh.");
-          }
-        };
-
-        transitionToMainWorld();
-        return;
-      }
-
-      const movementData = { positions: { X: characterRef.current.worldX, Y: characterRef.current.worldY }, direction: characterRef.current.direction, isMoving: characterRef.current.isMoving };
-      if (Date.now() - lastNetworkUpdate.current > 100) {
-        sendHouseMovementUpdate(movementData);
-        lastNetworkUpdate.current = Date.now();
-      }
-
-      RoomMapRef.current.draw(ctx);
-      characterRef.current.draw(ctx);
-      Object.values(remoteUsersHouseRef.current).forEach(user => user.draw(ctx));
-      roomForeGroundRef.current?.draw(ctx);
-      playerReachedToMusicPlaceRef.current?.draw(ctx);
-
-      animationFrameRef.current = requestAnimationFrame(RoomgameLoop);
-    };
-    animationFrameRef.current = requestAnimationFrame(RoomgameLoop);
-  };
-
-  const startGameLoop = () => {
-    const gameLoop = async () => {
-      if (!canvasRef.current) return;
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d")!;
-      if (!ctx || !characterRef.current || !inputHandlerRef.current || !gameMapRef.current || !collisionRef.current || !foregroundRef.current || !roomEnterDetectRef.current || !RoomMapRef.current || !roomForeGroundRef.current) return;
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const prevX = characterRef.current.worldX;
-      const prevY = characterRef.current.worldY;
-
-      characterRef.current.update(inputHandlerRef.current.keys);
-      Object.values(remoteUsersRef.current).forEach(user => user.update());
-
-      if (collisionRef.current.detectCollision(characterRef.current)) {
-        characterRef.current.worldX = prevX;
-        characterRef.current.worldY = prevY;
-      }
-
-      if (roomEnterDetectRef.current.detectRoomEnterZone(characterRef.current)) {
-        setisTransitionShowed(true);
-        const RoomPositions = { X: 700, Y: 500 };
-        const response = await handleUserEnteredRoom(userData?.id, userData?.name, RoomPositions, selectedCharacter, roomId);
-        if (Array.isArray(response)) {
-          remoteUsersRef.current = {};
-          await initRemoteUsersHouse(response);
-        }
-
-        if (characterRef.current) {
-          characterRef.current.worldX = RoomPositions.X;
-          characterRef.current.worldY = RoomPositions.Y;
-          characterRef.current.speed = 1.4;
-          characterRef.current.width = characterRef.current.selectedCharacter === "Male" ? 32 : 42;
-          characterRef.current.height = characterRef.current.selectedCharacter === "Male" ? 40 : 48;
-        }
-
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = 0;
-        // setisInRoom(true);
-        // setcurrentMap("House");
-
-        await Promise.all([RoomMapRef.current.load("/map/Room.png"), roomForeGroundRef.current.load("/map/RoomForeground.png")]);
-        initializeRoomCollisions();
-        setisTransitionShowed(false);
-        startRoomGameLoop();
-        return;
-      }
-
-      const movementData = { positions: { X: characterRef.current.worldX, Y: characterRef.current.worldY }, direction: characterRef.current.direction, isMoving: characterRef.current.isMoving };
-      if (Date.now() - lastNetworkUpdate.current > 100) {
-        sendMovementUpdate(movementData);
-        lastNetworkUpdate.current = Date.now();
-      }
-
-      gameMapRef.current.draw();
-      characterRef.current.draw(ctx);
-      Object.values(remoteUsersRef.current).forEach(user => user.draw(ctx));
-      foregroundRef.current.draw(ctx);
-
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
-    };
+  // Game loop starters
+  const startMainLoop = useCallback(() => {
+    const gameLoop = createMainGameLoop({
+      canvasRef,
+      characterRef,
+      inputHandlerRef,
+      gameMapRef,
+      collisionRef,
+      foregroundRef,
+      roomEnterDetectRef,
+      remoteUsersRef,
+      animationFrameRef,
+      lastNetworkUpdate,
+      onEnterRoom: () => handleEnterRoom(),
+    });
     gameLoop();
-  };
+  }, [refs, socketHandlers]);
 
-  useEffect(() => {
-    if (animationFrameRef.current !== 0) {
-      return;
+  const handleEnterRoom = useCallback(async () => {
+    setIsTransitionShowed(true);
+    const RoomPositions = { X: 700, Y: 500 };
+    const response = await handleUserEnteredRoom(userData?.id, userData?.name, RoomPositions, selectedCharacter, roomId);
+    
+    if (Array.isArray(response)) {
+      remoteUsersRef.current = {};
+      await initRemoteUsersHouse(response);
     }
 
+    resetCharacterPosition(RoomPositions.X, RoomPositions.Y, true);
+    cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = 0;
+
+    await Promise.all([
+      RoomMapRef.current?.load("/map/Room.png"),
+      roomForeGroundRef.current?.load("/map/RoomForeground.png"),
+    ]);
+    
+    initializeRoomCollisions();
+    setIsTransitionShowed(false);
+    startRoomLoop();
+  }, [userData, selectedCharacter, roomId]);
+
+  const handleLeaveRoom = useCallback(async () => {
+    cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = 0;
+    setIsTransitionShowed(true);
+
+    try {
+      if (!userData?.id) throw new Error("User ID is missing.");
+      const mainWorldUsers = await handleLeaveHouseAndRejoinMain(userData.id, roomId);
+
+      if (mainWorldUsers === false) {
+        throw new Error("Server failed to process the transition.");
+      }
+
+      remoteUsersHouseRef.current = {};
+      remoteUsersRef.current = {};
+      await initRemoteUsers(mainWorldUsers);
+      resetCharacterPosition(300, 300, false);
+
+      setIsTransitionShowed(false);
+      startMainLoop();
+    } catch (error) {
+      console.error("Failed to transition back to main world:", error);
+      toast.error("Could not return to the main world. Please refresh.");
+    }
+  }, [userData?.id, roomId]);
+
+  const startRoomLoop = useCallback(() => {
+    const roomLoop = createRoomGameLoop({
+      canvasRef,
+      characterRef,
+      inputHandlerRef,
+      RoomMapRef,
+      RoomCollisionsRef,
+      roomForeGroundRef,
+      roomLeaveDetectRef,
+      playerReachedToMusicPlaceRef,
+      remoteUsersHouseRef,
+      animationFrameRef,
+      lastNetworkUpdate,
+      onLeaveRoom: handleLeaveRoom,
+      onEnterMusicZone: () => setIsUserEnteredMusicZone(true),
+    });
+    roomLoop();
+  }, [refs, handleLeaveRoom]);
+
+  // Initialize game
+  useEffect(() => {
+    if (animationFrameRef.current !== 0) return;
     if (!canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    updateLoadingState({ initializing: true, connectingSocket: false, loadingAssets: false, ready: false });
-
-    const viewPort = { width: 1280, height: 720 };
-    canvas.width = viewPort.width;
-    canvas.height = viewPort.height;
-    ctx.fillStyle = '#1f2937';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '24px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('Initializing Game...', canvas.width / 2, canvas.height / 2);
-
-    gameMapRef.current = new GameMap(canvas, viewPort);
-    collisionRef.current = new Collision(collisionArrayData, 1025);
-    roomEnterDetectRef.current = new roomEnterDetect(roomEnterArrayData);
-    roomLeaveDetectRef.current = new roomLeaveDetect(roomLeaveArrayData);
-    playerReachedToMusicPlaceRef.current = new MusicPositionEnteredDetect(MusicPlayerArrayData);
-    RoomMapRef.current = new RoomMap(viewPort, canvas);
-    foregroundRef.current = new ForegroundObjects(viewPort);
-    roomForeGroundRef.current = new RoomForeground(viewPort, RoomMapRef.current);
-    socketRef.current = getSocket();
-    inputHandlerRef.current = new InputHandler();
-
-    const characterWidth = selectedCharacter === "Male" ? 70 : 110;
-    const characterHeight = selectedCharacter === "Male" ? 70 : 120;
-    const positions = {
-      X: canvas.width / 2 - characterWidth,
-      Y: canvas.height / 2 - characterHeight / 2
-    };
-    //console.log("characterPositions", 570 , 325)
-    characterRef.current = new Character(positions.X, positions.Y, selectedCharacter, userData!);
-
-    const handleUserJoined = (newUser: UsersData) => { if (newUser.userId !== userData?.id) { const remoteUser = new RemoteUser(newUser.positions.X, newUser.positions.Y, newUser.selectedCharacter, newUser.userId, newUser.UserName); remoteUser.load().then(() => { remoteUsersRef.current[newUser.userId] = remoteUser; }); } };
-    const handleUserMoved = (data: RemoteUserData) => { const remoteUser = remoteUsersRef.current[data.userId]; if (remoteUser) { remoteUser.updateFromNetwork(data); } };
-    const handleUserLeft = (data: LeftUserData) => { delete remoteUsersRef.current[data.userId]; delete remoteUsersHouseRef.current[data.userId]; };
-    const handleUserLeaveHouse = (data: { userId: string }) => { delete remoteUsersHouseRef.current[data.userId]; };
-    const handleHouseUserJoined = (newUser: UsersData) => { if (newUser.userId !== userData?.id) { const dims = { w: newUser.selectedCharacter === "Male" ? 32 : 42, h: newUser.selectedCharacter === 'Male' ? 40 : 48 }; const remoteUser = new RemoteUser(newUser.positions.X, newUser.positions.Y, newUser.selectedCharacter, newUser.userId, newUser.UserName, dims.w, dims.h); remoteUser.load().then(() => { remoteUsersHouseRef.current[newUser.userId] = remoteUser; }); } };
-    const handleHouseUserMoved = (data: RemoteUserData) => { const remoteUser = remoteUsersHouseRef.current[data.userId]; if (remoteUser) { remoteUser.updateFromNetwork(data); } };
 
     const initGame = async () => {
-      try {
-        updateLoadingState({ initializing: false, connectingSocket: true });
-        ctx.fillText('Connecting to server...', canvas.width / 2, canvas.height / 2);
-        const response = await handleSpaceCreation(userData?.id, userData?.name, positions, selectedCharacter, roomId);
-        if (Array.isArray(response)) {
-          await initRemoteUsers(response);
-        }
-        setupSocketListeners(handleUserJoined, handleUserMoved, handleUserLeft, handleHouseUserJoined, handleHouseUserMoved, handleUserLeaveHouse);
-        updateLoadingState({ connectingSocket: false, loadingAssets: true });
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.fillText('Loading game assets...', canvas.width / 2, canvas.height / 2);
-        await Promise.all([gameMapRef.current?.load("/map/metaverse map(not-zoom).png"), characterRef.current?.load(), foregroundRef.current?.load("/map/foreground image.png"), ...Object.values(remoteUsersRef.current).map(user => user.load())]);
-        updateLoadingState({ loadingAssets: false, ready: true });
-        startGameLoop();
-      } catch (error) {
-        console.error("Initialization error:", error);
-        toast.error("Failed to initialize game.");
+      const canvas = canvasRef.current!;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      // Setup canvas
+      const viewPort = { width: window.innerWidth, height: window.innerHeight };
+      canvas.width = viewPort.width;
+      canvas.height = viewPort.height;
+      ctx.imageSmoothingEnabled = false;
+
+      // Show loading
+      updateLoadingState({ initializing: true });
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('Initializing Game...', canvas.width / 2, canvas.height / 2);
+
+      // Initialize game objects
+      gameMapRef.current = new (await import('@/app/game/clases/GameMap')).GameMap(canvas, viewPort);
+      initializeMainCollisions();
+      
+      const { roomEnterDetect } = await import('@/app/game/clases/roomEnterDetect');
+      const { roomLeaveDetect } = await import('@/app/game/clases/roomLeaveDetect');
+      const { MusicPositionEnteredDetect } = await import('@/app/game/clases/MusicPositionDetect');
+      const { RoomMap } = await import('@/app/game/clases/RoomMap');
+      const { ForegroundObjects } = await import('@/app/game/clases/ForegroundObjects');
+      const { RoomForeground } = await import('@/app/game/clases/RoomForeground');
+      const { InputHandler } = await import('@/app/game/clases/InputHandler');
+      const { Character } = await import('@/app/game/clases/Character');
+
+      roomEnterDetectRef.current = new roomEnterDetect((await import('@/utils/roomEnterData')).exportRoomEnterArray);
+      roomLeaveDetectRef.current = new roomLeaveDetect((await import('@/utils/roomOutData')).ExportroomOutDataArray);
+      playerReachedToMusicPlaceRef.current = new MusicPositionEnteredDetect((await import('@/utils/MusicData')).ExportMusicDataArray);
+      RoomMapRef.current = new RoomMap(viewPort, canvas);
+      foregroundRef.current = new ForegroundObjects(viewPort);
+      roomForeGroundRef.current = new RoomForeground(viewPort, RoomMapRef.current);
+      socketRef.current = getSocket();
+      inputHandlerRef.current = new InputHandler();
+
+      // Initialize character
+      const positions = { X: 300, Y: 300 };
+      characterRef.current = new Character(positions.X, positions.Y, selectedCharacter, userData!);
+
+      // Setup socket listeners
+      setupSocketListeners(
+        socketHandlers.handleUserJoined,
+        socketHandlers.handleUserMoved,
+        socketHandlers.handleUserLeft,
+        socketHandlers.handleHouseUserJoined,
+        socketHandlers.handleHouseUserMoved,
+        socketHandlers.handleUserLeaveHouse
+      );
+
+      // Connect and load
+      updateLoadingState({ initializing: false, connectingSocket: true });
+      ctx.fillText('Connecting to server...', canvas.width / 2, canvas.height / 2);
+      
+      const response = await handleSpaceCreation(userData?.id, userData?.name, positions, selectedCharacter, roomId);
+      if (Array.isArray(response)) {
+        await initRemoteUsers(response);
       }
+
+      updateLoadingState({ connectingSocket: false, loadingAssets: true });
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillText('Loading game assets...', canvas.width / 2, canvas.height / 2);
+
+      await Promise.all([
+        gameMapRef.current?.load("/map/metaverse map(not-zoom).png"),
+        characterRef.current?.load(),
+        foregroundRef.current?.load("/map/foreground image.png"),
+        ...Object.values(remoteUsersRef.current).map(user => user.load()),
+      ]);
+
+      updateLoadingState({ loadingAssets: false, ready: true });
+      startMainLoop();
     };
 
     initGame();
@@ -361,119 +288,38 @@ function GamePage() {
     router.push("/dashboard?refresh=true");
   };
 
-  const getLoadingMessage = () => {
-    if (loadingStates.initializing) return "Initializing...";
-    if (loadingStates.connectingSocket) return "Connecting to server...";
-    if (loadingStates.loadingAssets) return "Loading game assets...";
-    return "";
+  const handleMusicPlayerClose = () => {
+    setIsUserEnteredMusicZone(false);
   };
-
-  const handleMusicPlayerClose = () : void => {
-    setisUserEnteredMusicZone(false)
-  }
-
-  const isLoading = !loadingStates.ready;
 
   return (
     <div className='relative w-full h-screen bg-[#67E6D2]'>
       <div className='w-full h-full flex items-center justify-center'>
-        {isTransitionShowed && (
-          <div className='absolute inset-0 bg-black/50 flex items-center justify-center z-50'>
-            <div className='bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2] p-6 shadow-lg text-center'>
-              <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4'></div>
-              <h1 className='text-black font-bold font-michroma text-lg'>
-                Hang On a little
-              </h1>
-              <div className='mt-2 text-gray-400 text-sm'>
-                Please wait while we prepare your game...
-              </div>
-            </div>
-          </div>
-        )}
-        <canvas
+        <GameCanvas
           ref={canvasRef}
-          className=''
-          style={{
-            maxWidth: '100%',
-            maxHeight: '100%',
-            objectFit: 'contain',
-            zIndex: 2
-          }}
+          isLoading={isLoading}
+          isTransitionShowed={isTransitionShowed}
+          loadingMessage={getLoadingMessage()}
         />
       </div>
 
-      {isLoading && (
-        <div className='absolute inset-0 bg-black/50 flex items-center justify-center z-50'>
-          <div className='bg-gray-800 p-6 rounded-lg shadow-lg text-center'>
-            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4'></div>
-            <h1 className='text-white font-bold font-michroma text-lg'>
-              {getLoadingMessage()}
-            </h1>
-            <div className='mt-2 text-gray-400 text-sm'>
-              Please wait while we prepare your game...
-            </div>
-          </div>
+      {isUserEnteredMusicZone && (
+        <div className='absolute top-0 p-3 w-full h-full flex items-center justify-center z-40'>
+          <MusicPlayer handleMusicClose={handleMusicPlayerClose} />
         </div>
       )}
-     
 
+      <GameUI
+        isOpen={isOpen}
+        setIsOpen={setIsOpen}
+        isLoading={isLoading}
+        roomId={roomId}
+        userData={userData}
+        onLeaveWorld={handleLeaveWorld}
+      />
 
-      {
-        isUserEnteredMusicZone && (
-          <div className='absolute top-0 p-3 w-full h-full flex items-center justify-center z-40'>
-            <MusicPlayer handleMusicClose={handleMusicPlayerClose} />
-          </div>
-        )
-      }
-
-
-      <button
-        className="absolute text-black cursor-pointer z-50 right-4 top-2 px-4 py-2 border-2 border-black bg-gradient-to-br from-[#C4C4C4] via-slate-200 to-[#F2F2F2] font-michroma"
-        onClick={() => setisOpen((prev) => !prev)}
-        disabled={isLoading}
-      >
-        {isOpen ? "Close" : "Controls"}
-      </button>
-
-      <div
-        className={`absolute z-10 right-4 top-16 p-4 bg-white/95 backdrop-blur-sm border-2 border-black flex flex-col gap-4 font-michroma w-64
-          transition-all duration-300 ease-in-out transform origin-top-right
-          ${isOpen && !isLoading ? 'opacity-100 scale-100 visible' : 'opacity-0 scale-95 invisible'}
-        `}
-      >
-        {roomId && (
-          <div className="flex flex-col gap-1 pb-3 border-b-2 border-black">
-            <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Current Room ID</span>
-            <div className="flex items-center gap-2 bg-gray-100 p-2 border-2 border-gray-300 group hover:border-black transition-colors cursor-pointer"
-                 onClick={() => {
-                   navigator.clipboard.writeText(roomId);
-                   toast.success("Room ID copied!");
-                 }}
-                 title="Click to copy"
-            >
-              <code className="text-sm font-bold flex-1 truncate">{roomId}</code>
-              <Copy className="w-4 h-4 text-gray-500 group-hover:text-black" />
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2">
-          <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Actions</span>
-          <Voicechat />
-          <button
-            onClick={handleLeaveWorld}
-            disabled={isLoading}
-            className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold border-2 border-black 
-            transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Leave World
-          </button>
-        </div>
-      </div>
-
-      {/* Chat Panel - Only show when game is ready */}
       {!isLoading && userData && (
-        <ChatPanel 
+        <ChatPanel
           roomId={roomId}
           userId={userData.id}
           userName={userData.name}
@@ -483,5 +329,3 @@ function GamePage() {
     </div>
   );
 }
-
-export default GamePage;

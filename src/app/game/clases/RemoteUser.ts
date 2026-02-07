@@ -57,8 +57,8 @@ export class RemoteUser {
                 this.width = newWidth
                 this.height = newHeigth
             } else {
-                this.width = 23;
-                this.height = 27;
+                this.width = 16; // Reduced from 23
+                this.height = 20; // Reduced from 27
             }
             this.totalFrames = 4;
             this.animationSpeed = 20;
@@ -67,11 +67,11 @@ export class RemoteUser {
                 this.width = newWidth
                 this.height = newHeigth
             } else {
-                this.width = 27;
-                this.height = 32;
+                this.width = 28; // Reduced from 23
+                this.height = 28; // Reduced from 27
             }
-            this.totalFrames = 8;
-            this.animationSpeed = 8;
+            this.totalFrames = 4;
+            this.animationSpeed = 20;
         }
     }
 
@@ -97,10 +97,10 @@ export class RemoteUser {
                 this.sprites.left.src = `${basePath}/playerLeft.png`;
                 this.sprites.right.src = `${basePath}/playerRight.png`;
             } else {
-                this.sprites.up.src = `${basePath}/femalePlayerUp1.png`;
-                this.sprites.down.src = `${basePath}/femalePlayerDown1.png`;
-                this.sprites.left.src = `${basePath}/femalePlayerLeft1.png`;
-                this.sprites.right.src = `${basePath}/femalePlayerRight1.png`;
+                this.sprites.up.src = `${basePath}/femaleTopNew.png`;
+                this.sprites.down.src = `${basePath}/femaleBottomnew.png`;
+                this.sprites.left.src = `${basePath}/femaleLeftnew.png`;
+                this.sprites.right.src = `${basePath}/femaleRightnew.png`;
             }
 
             this.sprites.up.onload = checkLoaded;
@@ -157,63 +157,108 @@ export class RemoteUser {
 
     draw(ctx: CanvasRenderingContext2D) {
         if (!this.isLoaded) {
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
-            ctx.fillRect(this.worldX, this.worldY, this.width, this.height);
+            ctx.fillStyle = 'red';
+            ctx.fillRect(
+                this.worldX - this.width / 2,
+                this.worldY - this.height / 2,
+                this.width,
+                this.height
+            );
             return;
         }
 
-        const frameWidth = this.currentSprite.width / this.totalFrames;
-        const frameHeight = this.currentSprite.height;
-        const displayName = this.userName.split(" ")[0] || this.userName
-
-        ctx.font = 'bold 12px Arial';
-        const textWidth = ctx.measureText(displayName).width;
-        const textHeight = 12;
-        const padding = 4;
+        try {
+            const frameWidth = this.currentSprite.width / this.totalFrames;
+            const frameHeight = this.currentSprite.height;
+            const displayName =
+                this.userName.split(' ')[0] || this.userName;
 
 
-        ctx.beginPath();
-        const bgX = this.worldX + this.width / 2 - textWidth / 2 - padding;
-        const bgY = this.worldY - textHeight - padding - 5;
-        const bgWidth = textWidth + padding * 2;
-        const bgHeight = textHeight + padding * 2;
+            const FONT_SIZE = 8;
+            const PADDING_X = 4;
+            const PADDING_Y = 2;
+            const RADIUS = 4;
 
+            ctx.font = `bold ${FONT_SIZE}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
 
-        if (ctx.roundRect) {
-            ctx.roundRect(bgX, bgY, bgWidth, bgHeight, 4);
-        } else {
-            // for older browsers
-            const radius = 4;
-            ctx.moveTo(bgX + radius, bgY);
-            ctx.lineTo(bgX + bgWidth - radius, bgY);
-            ctx.quadraticCurveTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + radius);
-            ctx.lineTo(bgX + bgWidth, bgY + bgHeight - radius);
-            ctx.quadraticCurveTo(bgX + bgWidth, bgY + bgHeight, bgX + bgWidth - radius, bgY + bgHeight);
-            ctx.lineTo(bgX + radius, bgY + bgHeight);
-            ctx.quadraticCurveTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - radius);
-            ctx.lineTo(bgX, bgY + radius);
-            ctx.quadraticCurveTo(bgX, bgY, bgX + radius, bgY);
+            const metrics = ctx.measureText(displayName);
+            const textWidth = metrics.width;
+            const textHeight =
+                metrics.actualBoundingBoxAscent +
+                metrics.actualBoundingBoxDescent;
+
+            const bgWidth = textWidth + PADDING_X * 2;
+            const bgHeight = textHeight + PADDING_Y * 2;
+
+            const bgX = this.worldX - bgWidth / 2;
+            const bgY =
+                this.worldY -
+                this.height / 2 -
+                bgHeight -
+                6; // spacing above character
+
+            ctx.beginPath();
+            if (ctx.roundRect) {
+                ctx.roundRect(bgX, bgY, bgWidth, bgHeight, RADIUS);
+            } else {
+                const r = RADIUS;
+                ctx.moveTo(bgX + r, bgY);
+                ctx.lineTo(bgX + bgWidth - r, bgY);
+                ctx.quadraticCurveTo(bgX + bgWidth, bgY, bgX + bgWidth, bgY + r);
+                ctx.lineTo(bgX + bgWidth, bgY + bgHeight - r);
+                ctx.quadraticCurveTo(
+                    bgX + bgWidth,
+                    bgY + bgHeight,
+                    bgX + bgWidth - r,
+                    bgY + bgHeight
+                );
+                ctx.lineTo(bgX + r, bgY + bgHeight);
+                ctx.quadraticCurveTo(bgX, bgY + bgHeight, bgX, bgY + bgHeight - r);
+                ctx.lineTo(bgX, bgY + r);
+                ctx.quadraticCurveTo(bgX, bgY, bgX + r, bgY);
+            }
+
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fill();
+
+            // Text (perfect vertical centering)
+            ctx.fillStyle = '#fff';
+            ctx.fillText(
+                displayName,
+                this.worldX,
+                bgY + bgHeight / 2
+            );
+
+            /* ================= SPRITE ================= */
+
+            ctx.drawImage(
+                this.currentSprite,
+                this.currentFrame * frameWidth,
+                0,
+                frameWidth,
+                frameHeight,
+                this.worldX - this.width / 2,
+                this.worldY - this.height / 2,
+                this.width,
+                this.height
+            );
+
+            /* ================= DEBUG HITBOX ================= */
+
+            // ctx.strokeStyle = 'lime';
+            // ctx.lineWidth = 2;
+            // ctx.strokeRect(
+            //     this.worldX - this.width / 2,
+            //     this.worldY - this.height / 2,
+            //     this.width,
+            //     this.height
+            // );
+        } catch (error) {
+            console.error('Error drawing character:', error);
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(this.worldX, this.worldY, this.width, this.height);
         }
-
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fill();
-
-
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(displayName, this.worldX + this.width / 2, this.worldY - 8);
-
-        ctx.drawImage(
-            this.currentSprite,
-            this.currentFrame * frameWidth,
-            0,
-            frameWidth,
-            frameHeight,
-            this.worldX,
-            this.worldY,
-            this.width,
-            this.height
-        );
     }
 }
