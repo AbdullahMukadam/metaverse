@@ -1,7 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
-interface UserData {
+export interface UserData {
     id: string;
     name: string;
     emailVerified: boolean;

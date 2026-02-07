@@ -6,9 +6,9 @@ import { exportArray } from '@/utils/collisionsData';
 import { ExportroomCollisionArray } from '@/utils/RoomCollisionsData';
 
 export function useCollisionManager(
-  collisionRef: React.MutableRefObject<Collision | null>,
-  RoomCollisionsRef: React.MutableRefObject<RoomCollision | null>,
-  RoomMapRef: React.MutableRefObject<RoomMap | null>
+  collisionRef: React.RefObject<Collision | null>,
+  RoomCollisionsRef: React.RefObject<RoomCollision | null>,
+  RoomMapRef: React.RefObject<RoomMap | null>
 ) {
   const collisionArrayData = exportArray;
   const roomCollisionsDataArray = ExportroomCollisionArray;

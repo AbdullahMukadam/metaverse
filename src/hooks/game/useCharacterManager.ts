@@ -4,9 +4,9 @@ import { RemoteUser } from '@/app/game/clases/RemoteUser';
 import { UsersData } from '@/utils/Socket';
 
 export function useCharacterManager(
-  characterRef: React.MutableRefObject<Character | null>,
-  remoteUsersRef: React.MutableRefObject<Record<string, RemoteUser>>,
-  remoteUsersHouseRef: React.MutableRefObject<Record<string, RemoteUser>>
+  characterRef: React.RefObject<Character | null>,
+  remoteUsersRef: React.RefObject<Record<string, RemoteUser>>,
+  remoteUsersHouseRef: React.RefObject<Record<string, RemoteUser>>
 ) {
   const initRemoteUsers = useCallback(async (users: UsersData[], userDataId?: string) => {
     for (const user of users) {
