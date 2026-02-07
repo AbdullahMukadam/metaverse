@@ -85,7 +85,7 @@ export function createMainGameLoop({
     gameMapRef.current.draw(characterRef.current.worldX, characterRef.current.worldY);
     characterRef.current.draw(ctx);
     Object.values(remoteUsersRef.current).forEach(user => user.draw(ctx));
-    foregroundRef.current.draw(ctx, gameMapRef.current.offsetX, gameMapRef.current.offsetY);
+    foregroundRef.current.draw(ctx);
 
     ctx.restore();
 
